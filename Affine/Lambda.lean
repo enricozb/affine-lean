@@ -2,12 +2,24 @@ import Mathlib.Data.Nat.Basic
 import «Affine».Lemmas
 import «Affine».Misc
 
+/--
+  Lambda terms without any restrictions to the multiplicity of bound or free variables.
+
+  This is used for normalization and substitution `Affine vs` has complex dependent values of `vs`.
+-/
 inductive Lambda : Type
 | var (x : ℕ) : Lambda
 | abs (x : ℕ) (e : Lambda) : Lambda
 | app (e₁ : Lambda) (e₂ : Lambda) : Lambda
 
 namespace Lambda
+
+/-- The size of a lambda, useful for `termination_by`. -/
+def depth (e : Lambda) : ℕ :=
+  match e with
+  | .var _ => 0
+  | .abs _ e => 1 + e.depth
+  | .app e₁ e₂ => 1 + max e₁.depth e₂.depth
 
 /-- Number of times `x` occurs freely in `e`. -/
 def count (e : Lambda) (x : ℕ) : ℕ :=
@@ -16,12 +28,19 @@ def count (e : Lambda) (x : ℕ) : ℕ :=
   | .abs x' e => if x = x' then 0 else count e x
   | .app e₁ e₂ => count e₁ x + count e₂ x
 
-/-- Whether all variables occur at most once. -/
-def is_affine (e : Lambda) : Prop :=
+/-- Free variables in `e`. -/
+def free (e : Lambda) : Finset ℕ :=
   match e with
-  | .var _ => True
+  | .var x => {x}
+  | .abs x e => e.free \ {x}
+  | .app e₁ e₂ => e₁.free ∪ e₂.free
+
+/-- Whether all variables occur at most once. -/
+def is_affine (e : Lambda) : Bool :=
+  match e with
+  | .var _ => true
   | .abs x e => is_affine e ∧ e.count x ≤ 1
-  | .app e₁ e₂ => is_affine e₁ ∧ is_affine e₂ ∧ ∀ x, e₁.count x + e₂.count x ≤ 1
+  | .app e₁ e₂ => is_affine e₁ ∧ is_affine e₂ ∧ ∀ x ∈ e.free, e₁.count x + e₂.count x ≤ 1
 
 def to_string (e : Lambda) : String :=
   match e with
@@ -29,7 +48,33 @@ def to_string (e : Lambda) : String :=
   | .abs x e => s!"(λ {x}. {e.to_string})"
   | .app e₁ e₂ => s!"{e₁.to_string} {e₂.to_string}"
 
+section Lemmas
+
+@[simp] theorem app_depth_left : e₁.depth < (app e₁ e₂).depth := by
+  simp only [depth]
+  calc
+  e₁.depth ≤ max e₁.depth e₂.depth := le_max_left _ _
+  _        < 1 + max e₁.depth e₂.depth := lt_one_add _
+
+@[simp] theorem app_depth_right : e₂.depth < (app e₁ e₂).depth := by
+  simp only [depth]
+  calc
+  e₂.depth ≤ max e₁.depth e₂.depth := le_max_right _ _
+  _        < 1 + max e₁.depth e₂.depth := lt_one_add _
+
+@[simp] theorem abs_depth : e.depth < (abs x e).depth := by simp only [depth, lt_one_add]
+
+/-- Free variables occur at most once in affine lambdas. -/
+theorem affine_count_le_one {e : Lambda} (he : e.is_affine) (x : ℕ) : e.count x ≤ 1 := by
+  match e with
+  | .var x' => simp only [count, ite_le_one (le_refl 1) (zero_le 1)]
+  | .abs x' e => simp only [count, ite_le_one (zero_le 1) (affine_count_le_one he.1 x)]
+  | .app e₁ e₂ => simp only [count, he.2.2]
+
+end Lemmas
 end Lambda
+
+instance : ToString Lambda := ⟨Lambda.to_string⟩
 
 namespace Affine
 

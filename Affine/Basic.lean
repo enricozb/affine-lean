@@ -33,11 +33,20 @@ def count (e : Affine vs) (x : ℕ) : ℕ :=
   | .abs x' e => if x = x' then 0 else count e x
   | .app e₁ e₂ _ => count e₁ x + count e₂ x
 
-/-- Whether all variables occur at most once. -/
-def is_affine (e : Affine vs) : Prop :=
+/-- Number of β-reductions. That is, `(λ x. e₁) e₂`. -/
+def count_β (e : Affine vs) : ℕ :=
   match e with
-  | .var _ => True
+  | .var x => 0
+  | .abs _ e => e.count_β
+  | .app (.var _) e₂ _ => e₂.count_β
+  | .app (.abs _ e₁) e₂ _ => 1 + e₁.count_β + e₂.count_β
+  | .app (.app e₁ e₂ _) e₃ _ => e₁.count_β + e₂.count_β + e₃.count_β
+
+/-- Whether all variables occur at most once. -/
+def is_affine (e : Affine vs) : Bool :=
+  match e with
+  | .var _ => true
   | .abs x e => is_affine e ∧ e.count x ≤ 1
-  | .app e₁ e₂ _ => is_affine e₁ ∧ is_affine e₂ ∧ ∀ x, e₁.count x + e₂.count x ≤ 1
+  | .app e₁ e₂ _ => is_affine e₁ ∧ is_affine e₂ ∧ ∀ x ∈ e.free, e₁.count x + e₂.count x ≤ 1
 
 end Affine
