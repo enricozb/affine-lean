@@ -1,0 +1,14 @@
+import Lake
+open Lake DSL
+
+package «affine» where
+  -- add package configuration options here
+
+lean_lib «Affine» where
+  -- add library configuration options here
+
+@[default_target]
+lean_exe «affine» where
+  root := `Main
+
+require mathlib from git "https://github.com/leanprover-community/mathlib4"
