@@ -1,9 +1,9 @@
-import «Affine».Defs
+import «Affine».Basic
 
 open Affine
 
-/-- For affine terms `e : Affine vs`, `vs` represents free occurrences of variables. -/
-theorem count_ne_zero_iff (e : Affine vs) (x : String) : e.count x ≠ 0 ↔ x ∈ vs := by
+/-- For affine terms `e : Affine vs`, `vs` represents occurrences of free variables. -/
+theorem count_ne_zero_iff (e : Affine vs) (x : ℕ) : e.count x ≠ 0 ↔ x ∈ vs := by
   unfold count
 
   match e with
@@ -18,7 +18,7 @@ theorem count_ne_zero_iff (e : Affine vs) (x : String) : e.count x ≠ 0 ↔ x �
         ⟨Finset.not_mem_singleton.mp h₂, (count_ne_zero_iff e x).mpr h₁⟩
     ⟩
 
-  | @Affine.app vs₁ vs₂ e₁ e₂ h =>
+  | .app e₁ e₂ h =>
     apply Iff.intro
     · intro h_add_ne_zero
       have hc : count e₁ x ≠ 0 ∨ count e₂ x ≠ 0 := by
@@ -34,8 +34,8 @@ theorem count_ne_zero_iff (e : Affine vs) (x : String) : e.count x ≠ 0 ↔ x �
     · intro hmem h_add_eq_zero
       have ⟨h₁, h₂⟩ := Nat.add_eq_zero_iff.mp h_add_eq_zero
 
-      have hmem : x ∈ vs₁ ∨ x ∈ vs₂ := Finset.mem_union.mp hmem
-      have : ¬(x ∈ vs₁ ∨ x ∈ vs₂) := not_or.mpr ⟨
+      have hmem : x ∈ e₁.free ∨ x ∈ e₂.free := Finset.mem_union.mp hmem
+      have : ¬(x ∈ e₁.free ∨ x ∈ e₂.free) := not_or.mpr ⟨
         (count_ne_zero_iff e₁ x).not_right.mp h₁,
         (count_ne_zero_iff e₂ x).not_right.mp h₂
       ⟩
@@ -86,13 +86,13 @@ theorem affine_is_affine (e : Affine vs) : is_affine e := by
   match e with
   | .var x => simp only
   | .abs x e => exact ⟨affine_is_affine e, is_affine_count_le_one (affine_is_affine e) x⟩
-  | @Affine.app vs₁ vs₂ e₁ e₂ h =>
+  | .app e₁ e₂ h =>
     refine' ⟨affine_is_affine e₁, affine_is_affine e₂, _⟩
     intro x'
     have : count e₁ x' = 0 ∨ count e₂ x' = 0 := by
       by_contra hc
       rw [not_or] at hc
-      have : x' ∈ vs₁ ∩ vs₂ := Finset.mem_inter.mpr ⟨
+      have : x' ∈ e₁.free ∩ e₂.free := Finset.mem_inter.mpr ⟨
         (count_ne_zero_iff e₁ x').mp hc.left,
         (count_ne_zero_iff e₂ x').mp hc.right
       ⟩
