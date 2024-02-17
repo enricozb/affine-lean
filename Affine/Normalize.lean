@@ -1,4 +1,4 @@
-import «Affine».Lambda
+import «Affine».Lemmas
 import «Affine».Misc
 
 namespace Lambda
@@ -10,6 +10,7 @@ def substᵥ (e : Lambda) (x y : ℕ) : Lambda :=
   | .app e₁ e₂ => .app (e₁.substᵥ x y) (e₂.substᵥ x y)
   | .abs x' e => if x = x' then .abs x' e else .abs x' (e.substᵥ x y)
 
+/-- Variable substitution preserves depth. Needed for `termination_by` in `substₑ`. -/
 @[simp] theorem substᵥ_depth_eq (e : Lambda) (x y : ℕ) : (e.substᵥ x y).depth = e.depth := by
   match e with
   | .var x' => simp only [substᵥ, depth, apply_ite, ite_self]
@@ -22,7 +23,7 @@ def substₑ (e₁ : Lambda) (x : ℕ) (e₂ : Lambda) : Lambda :=
   | .var x' => if x = x' then e₂ else e₁
   | .app a₁ a₂ => .app (a₁.substₑ x e₂) (a₂.substₑ x e₂)
   | .abs x' e₁ =>
-    if x = x' then
+    if x = x' ∨ x ∉ e₁.free then
       .abs x' e₁
     else if x' ∈ e₂.free then
       let y := e₂.free.fresh
@@ -30,6 +31,41 @@ def substₑ (e₁ : Lambda) (x : ℕ) (e₂ : Lambda) : Lambda :=
     else
       .abs x' (e₁.substₑ x e₂)
 termination_by e₁.depth
+
+@[simp] theorem substₑ_count_mem_free (e₁ e₂ : Lambda) (hx : x ∈ e₁.free) :
+    (e₁.substₑ x e₂).count y = (e₁.count x) * (e₂.count y) := by
+  match e₁ with
+  | .var x' => simp only [substₑ, if_pos (Finset.mem_singleton.mp hx), count, one_mul]
+  | .abs x' e₁ =>
+    have hx : ¬(x = x' ∨ x ∉ e₁.free) := by
+      simp_rw [not_or, not_not, ← Finset.mem_singleton.not, and_comm, ← Finset.mem_sdiff]
+      exact hx
+
+    simp only [substₑ, if_neg hx_ne]
+
+
+@[simp] theorem substₑ_of_not_mem_free (e₁ e₂ : Lambda) (h : x ∉ e₁.free) :
+    e₁.substₑ x e₂ = e₁ := by
+  match e₁ with
+  | .var x' => simp only [substₑ, if_neg (Finset.mem_singleton.not.mp h)]
+  | .abs x' e₁ =>
+    simp only [free, Finset.mem_sdiff, not_and_or, not_not] at h
+    by_cases hx : x = x'
+    · simp only [substₑ, if_pos (Or.inl hx)]
+    · have : x ∉ e₁.free := by simp only [Finset.mem_singleton, hx, or_false] at h; exact h
+      simp only [substₑ, if_pos (Or.inr this)]
+  | .app a₁ a₂ =>
+    simp only [free, Finset.not_mem_union] at h
+    simp only [substₑ, substₑ_of_not_mem_free a₁ e₂ h.left, substₑ_of_not_mem_free a₂ e₂ h.right]
+
+@[simp] theorem substₑ_count_not_mem_free (e₁ e₂ : Lambda) (h : x ∉ e₁.free) :
+    (e₁.substₑ x e₂).count y = e₁.count y := by
+  simp only [substₑ_of_not_mem_free e₁ e₂ h]
+
+@[simp] theorem substₑ_count_mem_free_of_affine
+    (e₁ e₂ : Lambda) (h : x ∈ e₁.free) (he₁ : e₁.is_affine) :
+    (e₁.substₑ x e₂).count y = e₁.count y := by
+  simp only [substₑ_of_not_mem_free e₁ e₂ h]
 
 theorem substₑ_free_eq (e₁ e₂ : Lambda) (x : ℕ) :
     (e₁.substₑ x e₂).free = e₁.free \ {x} ∪ e₂.free := by
@@ -68,11 +104,11 @@ theorem affine_substₑ_is_affine {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) 
   match e₁ with
   | .var x' => simp only [apply_ite, he₂, he₁, ite_self]
   | .app a₁ a₂ =>
-    have ⟨ha₁, ha₂, hc⟩ := he₁
-    have hc := affine_substₑ_is_affine ha₁ ha₂
-    simp only [count] at hc
-    simp only [is_affine, affine_substₑ_is_affine ha₁ he₂, affine_substₑ_is_affine ha₂ he₂, hc, forall_const, true_and]
-    sorry
+    have ⟨ha₁, ha₂, hc⟩ := is_affine_of_app.mp he₁
+    simp only [is_affine, affine_substₑ_is_affine ha₁ he₂, affine_substₑ_is_affine ha₂ he₂,
+      true_and, decide_eq_true_eq]
+    intro x hx
+
 
   | .abs x' e₁ => sorry
 
@@ -84,10 +120,10 @@ def small_step (e : Lambda) : Lambda :=
 theorem small_step_is_affine {e : Lambda} (he : e.is_affine) : (e.small_step.is_affine) := by
   match e with
   | .var _ => simp only [small_step, is_affine]
-  | .abs x e => simp only [small_step, is_affine, he.1, he.2, and_self]
+  | .abs x e => simp only [small_step, is_affine, and_self, is_affine_of_abs.mp he, decide_True]
 
   | .app (.abs x e₁) e₂ =>
-    have ⟨⟨he₁, _⟩, he₂, _⟩ := he
+    have ⟨he₁, he₂, _⟩ := is_affine_of_app.mp he
     simp only [small_step, substₑ, is_affine, affine_substₑ_is_affine he₁ he₂]
 
   | .app (.var x) e₂ =>

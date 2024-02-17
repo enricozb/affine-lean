@@ -48,6 +48,3 @@ theorem to_lambda_is_affine (e : Affine vs) : e.to_lambda.is_affine := by
         affine_count_le_one e₂ x]
 
 end Affine
-
-#eval (Affine.abs 1 (.app (.var 1) (.var 2) (by simp))) -- (λ 1. 1 2)
-#eval (Affine.abs 1 (.app (.var 2) (.var 1) (by simp))).vars -- {1, 2}

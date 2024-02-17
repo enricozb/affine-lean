@@ -1,5 +1,6 @@
 import «Affine».Affine
 import «Affine».Lambda
+import «Affine».Misc
 
 namespace Lambda
 
@@ -38,6 +39,20 @@ theorem count_not_mem_free {e : Lambda} {x : ℕ} (h : x ∉ e.free) : e.count x
   | .app e₁ e₂ =>
     have ⟨hx₁, hx₂⟩ : x ∉ e₁.free ∧ x ∉ e₂.free := Finset.not_mem_union.mp h
     simp only [count, count_not_mem_free hx₁, count_not_mem_free hx₂]
+
+/-- A fresh variable is not free. -/
+@[simp] theorem count_fresh (e : Lambda) : e.count e.free.fresh = 0 := by
+  match e with
+  | .var x => simp only [count, free, if_neg (Finset.fresh_singleton_ne x)]
+  | .abs x e =>
+    simp only [count, free]
+    by_cases hx : (e.free \ {x}).fresh = x
+    · rw [if_pos hx]
+    · simp only [if_neg hx, count_not_mem_free (Finset.fresh_sdiff hx)]
+  | .app e₁ e₂ =>
+    simp only [count, free,
+      count_not_mem_free (Finset.fresh_union_left e₁.free e₂.free),
+      count_not_mem_free (Finset.fresh_union_right e₁.free e₂.free)]
 
 /-- Free variables occur at most once in affine lambdas. -/
 theorem affine_count_le_one {e : Lambda} (he : e.is_affine) (x : ℕ) : e.count x ≤ 1 := by
