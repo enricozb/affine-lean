@@ -41,11 +41,3 @@ def fresh (s : Finset ℕ) : ℕ :=
   (not_mem_union.mp (fresh_not_mem (s₁ ∪ s₂))).right
 
 end Finset
-
--- instance : ToString (Finset ℕ) := ⟨
---   let trans : IsTrans String (· < ·) := sorry
---   let trans : IsAntisymm String (· < ·) := sorry
---   let trans : IsTotal String (· < ·) := sorry
-
---   fun finset => ", ".intercalate ((finset.val.map ToString.toString).sort (· < ·))
--- ⟩

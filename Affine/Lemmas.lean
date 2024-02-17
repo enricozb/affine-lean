@@ -15,13 +15,11 @@ namespace Lambda
 @[simp] theorem is_affine_of_var : (var x).is_affine := by
   simp only [is_affine]
 
-@[simp] theorem is_affine_of_abs : (abs x e).is_affine ↔ is_affine e ∧ count e x ≤ 1:= by
+@[simp] theorem is_affine_of_abs : (abs x e).is_affine ↔ is_affine e ∧ count e x ≤ 1 := by
   simp only [is_affine, decide_eq_true_eq]
 
 @[simp] theorem is_affine_of_app :
-    (app e₁ e₂).is_affine ↔ is_affine e₁ ∧
-                            is_affine e₂ ∧
-                            ∀ x ∈ free (app e₁ e₂), count e₁ x + count e₂ x ≤ 1 := by
+    (app e₁ e₂).is_affine ↔ is_affine e₁ ∧ is_affine e₂ ∧ e₁.free ∩ e₂.free = ∅ := by
   simp only [is_affine, decide_eq_true_eq]
 
 /-- Variables that are not free in `e` have count of `0`. -/
@@ -63,11 +61,36 @@ theorem affine_count_le_one {e : Lambda} (he : e.is_affine) (x : ℕ) : e.count 
   | .var x' => simp only [count, ite_le_one (le_refl 1) (zero_le 1)]
   | .abs x' e => simp only [count, ite_le_one (zero_le 1)
     (affine_count_le_one (is_affine_of_abs.mp he).1 x)]
-  | .app e₁ e₂ => simp only [count, (is_affine_of_app.mp he).2.2 x hx]
+  | .app e₁ e₂ =>
+    simp [free] at hx
+    have ⟨he₁, he₂, h⟩ := is_affine_of_app.mp he
+    have hn : ¬(x ∈ e₁.free ∧ x ∈ e₂.free) := by
+      simp only [← Finset.mem_inter, h, Finset.not_mem_empty, not_false_eq_true]
+
+    by_cases hx₁ : x ∈ e₁.free
+    · have hx₂ : x ∉ e₂.free := fun hx₂ => hn ⟨hx₁, hx₂⟩
+      simp only [count, count_not_mem_free hx₂, add_zero, affine_count_le_one he₁]
+    · simp only [count, count_not_mem_free hx₁, zero_add, affine_count_le_one he₂]
+
+theorem affine_free_count_eq_one {e : Lambda} (he : e.is_affine) (h : x ∈ e.free) :
+    e.count x = 1 := by
+  sorry
+  -- match e with
+  -- | .var x' => simp only [count, Finset.mem_singleton.mp h, if_pos]
+  -- | .abs x' e =>
+  --   have ⟨he, _⟩ := is_affine_of_abs.mp he
+  --   have ⟨hxmem, hxne⟩ := Finset.mem_sdiff.mp h
+  --   simp_rw [count, if_neg (Finset.mem_singleton.not.mp hxne), affine_free_count_eq_one he hxmem]
+  -- | .app e₁ e₂ =>
+  --   have ⟨_, _, _⟩ := is_affine_of_app.mp he
+  --   simp only [free] at h
+  --   simp only [count]
 
 end Lambda
 
 namespace Affine
+
+@[simp] theorem free_eq (e : Affine vs) : vs = e.free := by rfl
 
 @[simp] theorem app_depth_left : e₁.depth < (app e₁ e₂ h).depth := by
   simp only [depth, lt_of_le_of_lt (le_max_left e₁.depth e₂.depth) (lt_one_add _)]

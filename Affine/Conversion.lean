@@ -9,6 +9,14 @@ def to_lambda (e : Affine vs) : Lambda :=
   | .abs x e => .abs x e.to_lambda
   | .app e₁ e₂ _ => .app e₁.to_lambda e₂.to_lambda
 
+def of_lambda {e : Lambda} (h : e.is_affine) : Affine e.free :=
+  match e with
+  | .var x => .var x
+  | .abs x _ => .abs x (Affine.of_lambda (Lambda.is_affine_of_abs.mp h).1)
+  | .app _ _ =>
+    have ⟨he₁, he₂, hinter⟩ := Lambda.is_affine_of_app.mp h
+    .app (Affine.of_lambda he₁) (Affine.of_lambda he₂) hinter
+
 theorem to_lambda_free_eq (e : Affine vs) : e.free = e.to_lambda.free := by
   match e with
   | .var x => simp only [free, to_lambda, Lambda.free]
@@ -32,19 +40,7 @@ theorem to_lambda_is_affine (e : Affine vs) : e.to_lambda.is_affine := by
     simp only [to_lambda, Lambda.is_affine, he, hc, true_and, decide_True]
   | .app e₁ e₂ h =>
     simp only [to_lambda, Lambda.is_affine, Lambda.free,
-      to_lambda_is_affine e₁, to_lambda_is_affine e₂, true_and, decide_eq_true_eq]
-    intro x hx
-    rw [← to_lambda_free_eq e₁, ← to_lambda_free_eq e₂] at hx
-    apply Or.elim (Finset.mem_union.mp hx)
-    · intro hx₁
-      have hx₂ : x ∉ e₂.free := fun hx₂ =>
-        Finset.eq_empty_iff_forall_not_mem.mp h x (Finset.mem_inter.mpr ⟨hx₁, hx₂⟩)
-      simp only [count, ← to_lambda_count_eq, count_not_mem_free hx₂, add_zero,
-        affine_count_le_one e₁ x]
-    · intro hx₂
-      have hx₁ : x ∉ e₁.free := fun hx₁ =>
-        Finset.eq_empty_iff_forall_not_mem.mp h x (Finset.mem_inter.mpr ⟨hx₁, hx₂⟩)
-      simp only [count, ← to_lambda_count_eq, count_not_mem_free hx₁, zero_add,
-        affine_count_le_one e₂ x]
+      to_lambda_is_affine e₁, to_lambda_is_affine e₂, true_and, decide_eq_true_eq,
+      ← to_lambda_free_eq e₁, ← to_lambda_free_eq e₂, h]
 
 end Affine
