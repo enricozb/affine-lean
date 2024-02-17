@@ -12,13 +12,20 @@ def small_step (e : Lambda) : Lambda :=
   | .app (.abs x e₁) e₂ => e₁.substₑ x e₂
   | .app (.app e₁ e₂) e₃ => .app (.app e₁.small_step e₂.small_step) e₃.small_step
 
-theorem small_step_count_β_lt (e : Lambda) (h : e.count_β ≠ 0) : e.small_step.count_β < e.count_β := by
+theorem small_step_count_β_lt {e : Lambda} (h : e.count_β ≠ 0) : e.small_step.count_β < e.count_β := by
   match e with
   | .var x => simp only [count_β, ne_eq, not_true_eq_false] at h
-  | .abs x e => simp only [count_β, small_step_count_β_lt e h]
-  | .app (.var x) e₂ => sorry
-  | .app (.abs x e₁) e₂ => sorry
-  | .app (.app e₁ e₂) e₃ => sorry
+  | .abs x e
+  | .app (.var x) e₂ =>
+    simp only [count_β] at h
+    simp only [count_β, small_step_count_β_lt h]
+  | .app (.abs x e₁) e₂ =>
+    simp only [count_β] at h
+    simp only [count_β, small_step, substₑ_count_β]
+  | .app (.app e₁ e₂) e₃ =>
+    simp only [count_β] at h
+    simp only [count_β, small_step]
+    sorry
 
 def normalize (e : Lambda) : Lambda :=
   if h : e.count_β = 0 then
@@ -26,6 +33,15 @@ def normalize (e : Lambda) : Lambda :=
   else
     have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt h
     e.small_step.normalize
+termination_by e.count_β
+
+@[simp] theorem normalize_is_normal (e : Lambda) : e.normalize.is_normal :=
+  if h : e.count_β = 0 then by
+    rw [normalize, dif_pos h, is_normal, h]
+  else by
+    have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt h
+    rw [normalize, dif_neg h]
+    exact e.small_step.normalize_is_normal
 termination_by e.count_β
 
 @[simp] theorem small_step_count (e : Lambda) (x : ℕ) : e.small_step.count x ≤ e.count x := by
@@ -104,7 +120,7 @@ termination_by e.count_β
   simp only [count_β, dif_pos]
   by_cases hc : e.count_β = 0
   · simp_rw [dif_pos hc]
-  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt e hc
+  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc
     simp_rw [dif_neg hc, small_step, normalize_of_abs e.small_step]
 termination_by e.count_β
 
@@ -113,7 +129,7 @@ termination_by e.count_β
   simp only [count_β, dif_pos]
   by_cases hc : e.count_β = 0
   · simp_rw [dif_pos hc, Finset.Subset.refl]
-  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt e hc
+  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc
     have h₁ : e.small_step.normalize.free ⊆ e.small_step.free := normalize_free_eq e.small_step
     have h₂ : e.small_step.free ⊆ e.free := small_step_free e
     simp_rw [dif_neg hc, Finset.Subset.trans h₁ h₂]
@@ -126,7 +142,7 @@ termination_by e.count_β
   else
     rw [normalize, dif_neg hβ]
     simp only
-    have : e.small_step.count_β < e.count_β := small_step_count_β_lt e hβ
+    have : e.small_step.count_β < e.count_β := small_step_count_β_lt hβ
     exact normalize_affine (small_step_is_affine h)
 termination_by e.count_β
 
@@ -134,12 +150,26 @@ end Lambda
 
 namespace Affine
 
-def normalize (e : Affine vs) : (vs' : Finset ℕ) × (_ : Affine vs') ×' (vs' ⊆ vs) :=
+def normalize_impl (e : Affine vs) : (vs' : Finset ℕ) × (_ : Affine vs') ×' (vs' ⊆ vs) :=
   let e' := e.to_lambda.normalize
   have he'_free_sub : e'.free ⊆ vs := by
     rw [e.free_eq, to_lambda_free_eq e]
     exact Lambda.normalize_free_eq e.to_lambda
   have he'_is_affine : e'.is_affine := Lambda.normalize_affine e.to_lambda_is_affine
   ⟨e'.free, Affine.of_lambda he'_is_affine, he'_free_sub⟩
+
+def normal_free (e : Affine vs) : Finset ℕ := e.normalize_impl.1
+
+def normalize (e : Affine vs) : Affine e.normal_free := e.normalize_impl.2.1
+
+/-- Commutativity between normalization and conversions. -/
+theorem normalize_lambda_comm (e : Affine vs) :
+    e.normalize.to_lambda = e.to_lambda.normalize := by
+  simp_rw [normalize, normalize_impl, Lambda.of_lambda_to_lambda]
+
+/-- A normalized lambda term has no β-reductions remaining. -/
+theorem normalize_is_normal (e : Affine vs) : e.normalize.is_normal := by
+  rw [is_normal, ← to_lambda_count_β_eq, normalize_lambda_comm, ← Lambda.is_normal]
+  exact Lambda.normalize_is_normal e.to_lambda
 
 end Affine

@@ -32,8 +32,24 @@ def substₑ (e₁ : Lambda) (x : ℕ) (e₂ : Lambda) : Lambda :=
 termination_by e₁.depth
 
 theorem substₑ_count {e₁ e₂ : Lambda} :
-    (substₑ e₁ x' e₂).count x = (if x = x' then 0 else e₁.count x) + e₂.count x := by
+    (e₁.substₑ x' e₂).count x ≤ (if x = x' then 0 else e₁.count x) + e₂.count x := by
   sorry
+  -- match e₁ with
+  -- | .var y =>
+  --   simp_rw [substₑ, apply_ite (count · x), count]
+  --   by_cases hy : x' = y
+  --   · rw [if_pos hy]
+  --     by_cases hx : x = x'
+  --     · rw [if_pos hx, zero_add]
+  --     · rw [if_neg hx, if_neg (hy ▸ hx), zero_add]
+  --   · rw [if_neg hy]
+  --     by_cases hx : x = x'
+  --     · simp only [if_pos hx, if_neg (hx.symm ▸ hy), zero_le]
+  --     · simp only [if_neg hx, le_add_iff_nonneg_right, zero_le]
+
+  -- | .abs y e =>
+  --   simp only [substₑ]
+  --   sorry
 
 theorem substₑ_free {e₁ e₂ : Lambda} : (substₑ e₁ x e₂).free ⊆ e₁.free \ {x'} ∪ e₂.free := by
   sorry
@@ -41,5 +57,7 @@ theorem substₑ_free {e₁ e₂ : Lambda} : (substₑ e₁ x e₂).free ⊆ e�
 theorem is_affine_substₑ {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) (he₂ : e₂.is_affine) (x : ℕ) :
     (e₁.substₑ x e₂).is_affine := by
   sorry
+
+theorem substₑ_count_β {e₁ e₂ : Lambda} : (e₁.substₑ x e₂).count_β < 1 + e₁.count_β + e₂.count_β := by sorry
 
 end Lambda

@@ -29,6 +29,9 @@ def count_β (e : Lambda) : ℕ :=
   | .app (.abs _ e₁) e₂ => 1 + e₁.count_β + e₂.count_β
   | .app (.app e₁ e₂) e₃ => e₁.count_β + e₂.count_β + e₃.count_β
 
+/-- Normal-form lambdas have no β-reductions remaining. -/
+abbrev is_normal (e : Lambda) := e.count_β = 0
+
 /-- Number of times `x` occurs freely in `e`. -/
 def count (e : Lambda) (x : ℕ) : ℕ :=
   match e with

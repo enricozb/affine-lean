@@ -2,8 +2,6 @@ import Mathlib.Data.Nat.Basic
 import Mathlib.Data.Finset.Lattice
 import Mathlib.Data.Finset.Sort
 
-theorem Nat.add_le_one {a b : ℕ} : a + b ≤ 1 → a = 0 ∨ b = 0 := by sorry
-
 theorem ite_le_ite {P : Prop} [Decidable P] {a b c d: ℕ} (h₁ : a ≤ b) (h₂ : c ≤ d) :
     (if P then a else c) ≤ (if P then b else d) := by
   by_cases h : P
@@ -12,11 +10,8 @@ theorem ite_le_ite {P : Prop} [Decidable P] {a b c d: ℕ} (h₁ : a ≤ b) (h�
 
 namespace Finset
 
-def fresh (s : Finset ℕ) : ℕ :=
-  if h : s.Nonempty then
-    s.max' h + 1
-  else
-    0
+/-- A "fresh" value not in `Finset ℕ`. -/
+def fresh (s : Finset ℕ) : ℕ := if h : s.Nonempty then s.max' h + 1 else 0
 
 @[simp] theorem fresh_empty : (∅ : Finset ℕ).fresh = 0 := by rfl
 

@@ -16,12 +16,17 @@ inductive Affine : (vs : Finset ℕ) → Type
 
 namespace Affine
 
-/-- The size of a lambda, useful for `termination_by`. -/
-def depth (e : Affine vs) : ℕ :=
+/-- The number of β-reductions. That is, `(λ x. e₁) e₂`. -/
+def count_β (e : Affine vs) : ℕ :=
   match e with
   | .var _ => 0
-  | .abs _ e => 1 + e.depth
-  | .app e₁ e₂ _ => 1 + max e₁.depth e₂.depth
+  | .abs _ e => e.count_β
+  | .app (.var _) e₂ _ => e₂.count_β
+  | .app (.abs _ e₁) e₂ _ => 1 + e₁.count_β + e₂.count_β
+  | .app (.app e₁ e₂ _) e₃ _ => e₁.count_β + e₂.count_β + e₃.count_β
+
+/-- Normal-form lambdas have no β-reductions remaining. -/
+def is_normal (e : Affine vs) := e.count_β = 0
 
 /-- The free variables in an affine term. -/
 abbrev free (_ : Affine vs) : Finset ℕ := vs
