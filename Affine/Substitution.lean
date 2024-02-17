@@ -31,6 +31,13 @@ def substₑ (e₁ : Lambda) (x : ℕ) (e₂ : Lambda) : Lambda :=
       .abs x' (e₁.substₑ x e₂)
 termination_by e₁.depth
 
+theorem substₑ_count {e₁ e₂ : Lambda} :
+    (substₑ e₁ x' e₂).count x = (if x = x' then 0 else e₁.count x) + e₂.count x := by
+  sorry
+
+theorem substₑ_free {e₁ e₂ : Lambda} : (substₑ e₁ x e₂).free ⊆ e₁.free \ {x'} ∪ e₂.free := by
+  sorry
+
 theorem is_affine_substₑ {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) (he₂ : e₂.is_affine) (x : ℕ) :
     (e₁.substₑ x e₂).is_affine := by
   sorry

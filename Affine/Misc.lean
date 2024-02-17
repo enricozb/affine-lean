@@ -4,6 +4,12 @@ import Mathlib.Data.Finset.Sort
 
 theorem Nat.add_le_one {a b : ℕ} : a + b ≤ 1 → a = 0 ∨ b = 0 := by sorry
 
+theorem ite_le_ite {P : Prop} [Decidable P] {a b c d: ℕ} (h₁ : a ≤ b) (h₂ : c ≤ d) :
+    (if P then a else c) ≤ (if P then b else d) := by
+  by_cases h : P
+  · simp_rw [if_pos h, h₁]
+  · simp_rw [if_neg h, h₂]
+
 namespace Finset
 
 def fresh (s : Finset ℕ) : ℕ :=
