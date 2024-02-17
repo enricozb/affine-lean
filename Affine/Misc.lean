@@ -2,11 +2,17 @@ import Mathlib.Data.Nat.Basic
 import Mathlib.Data.Finset.Lattice
 import Mathlib.Data.Finset.Sort
 
-theorem ite_le_ite {P : Prop} [Decidable P] {a b c d: ℕ} (h₁ : a ≤ b) (h₂ : c ≤ d) :
+theorem ite_le_ite {P : Prop} [Decidable P] {a b c d : ℕ} (h₁ : a ≤ b) (h₂ : c ≤ d) :
     (if P then a else c) ≤ (if P then b else d) := by
   by_cases h : P
   · simp_rw [if_pos h, h₁]
   · simp_rw [if_neg h, h₂]
+
+theorem ite_lt {P : Prop} [Decidable P] {a b c : ℕ} (ha : a < c) (hb : b < c) :
+    (if P then a else b) < c := by
+  by_cases h : P
+  · simp_rw [if_pos h, ha]
+  · simp_rw [if_neg h, hb]
 
 namespace Finset
 

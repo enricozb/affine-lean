@@ -12,11 +12,27 @@ def small_step (e : Lambda) : Lambda :=
   | .app (.abs x e₁) e₂ => e₁.substₑ x e₂
   | .app (.app e₁ e₂) e₃ => .app (.app e₁.small_step e₂.small_step) e₃.small_step
 
+theorem small_step_count_β_eq_zero {e : Lambda} (h : e.count_β = 0) : e.small_step.count_β = 0 := by
+  match e with
+  | .var _ => simp only [count_β]
+  | .abs _ e =>
+    simp only [count_β] at h
+    simp only [count_β, small_step_count_β_eq_zero h]
+  | .app (.var _) e₂ =>
+    simp only [count_β] at h
+    simp only [count_β, small_step_count_β_eq_zero h]
+  | .app (.abs x e₁) e₂ =>
+    simp_rw [count_β, add_assoc, add_comm 1, Nat.add_one_ne_zero] at h
+  | .app (.app e₁ e₂) e₃ =>
+    simp only [count_β, Nat.add_eq_zero_iff] at h
+    have ⟨⟨he₁, he₂⟩, he₃⟩ := h
+    simp only [count_β, he₁, he₂, he₃, small_step_count_β_eq_zero]
+
 theorem small_step_count_β_lt {e : Lambda} (h : e.count_β ≠ 0) : e.small_step.count_β < e.count_β := by
   match e with
   | .var x => simp only [count_β, ne_eq, not_true_eq_false] at h
-  | .abs x e
-  | .app (.var x) e₂ =>
+  | .abs _ e
+  | .app (.var _) e₂ =>
     simp only [count_β] at h
     simp only [count_β, small_step_count_β_lt h]
   | .app (.abs x e₁) e₂ =>
@@ -25,7 +41,36 @@ theorem small_step_count_β_lt {e : Lambda} (h : e.count_β ≠ 0) : e.small_ste
   | .app (.app e₁ e₂) e₃ =>
     simp only [count_β] at h
     simp only [count_β, small_step]
-    sorry
+
+    /-
+      lots of code to just show this:
+      h : count_β e₁ + count_β e₂ + count_β e₃ ≠ 0
+      ⊢ e₁.small_step.count_β + e₂.small_step.count_β + e₂.small_step.count_β <
+          e₁.count_β + e₂.count_β + e₃.count_β
+    -/
+    by_cases he₁ : e₁.count_β = 0
+    · simp only [he₁, small_step_count_β_eq_zero, zero_add]
+      by_cases he₂ : e₂.count_β = 0
+      · simp only [he₁, he₂, zero_add] at h
+        simp only [he₂, small_step_count_β_eq_zero, zero_add, small_step_count_β_lt h]
+      · by_cases he₃ : e₃.count_β = 0
+        · simp only [he₁, he₃, add_zero, zero_add] at h
+          simp only [he₃, small_step_count_β_eq_zero, small_step_count_β_lt h,
+            zero_add, add_zero]
+        · exact add_lt_add (small_step_count_β_lt he₂) (small_step_count_β_lt he₃)
+    · by_cases he₂ : e₂.count_β = 0
+      · by_cases he₃ : e₃.count_β = 0
+        · simp only [he₂, he₃, add_zero] at h
+          simp only [he₂, he₃, small_step_count_β_eq_zero, add_zero, small_step_count_β_lt he₁]
+        · simp only [he₂, small_step_count_β_eq_zero, add_zero]
+          exact add_lt_add (small_step_count_β_lt he₁) (small_step_count_β_lt he₃)
+      · by_cases he₃ : e₃.count_β = 0
+        · simp only [he₃, small_step_count_β_eq_zero, add_zero,
+          add_lt_add (small_step_count_β_lt he₁) (small_step_count_β_lt he₂)]
+        · refine' add_lt_add (add_lt_add _ _) _
+          · exact small_step_count_β_lt he₁
+          · exact small_step_count_β_lt he₂
+          · exact small_step_count_β_lt he₃
 
 def normalize (e : Lambda) : Lambda :=
   if h : e.count_β = 0 then

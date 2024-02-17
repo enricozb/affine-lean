@@ -78,4 +78,16 @@ namespace Affine
 
 @[simp] theorem free_eq (e : Affine vs) : vs = e.free := by rfl
 
+@[simp] theorem count_β_of_abs : (abs x e).count_β = e.count_β := by rfl
+
+@[simp] theorem count_β_of_app_var : (app (var x) e h).count_β = e.count_β := by rfl
+
+@[simp] theorem count_β_of_app_abs :
+    (app (abs x e₁) e₂ h).count_β = 1 + e₁.count_β + e₂.count_β := by
+  rfl
+
+@[simp] theorem count_β_of_app_app :
+    (app (app e₁ e₂ h₁) e₃ h₂).count_β = e₁.count_β + e₂.count_β + e₃.count_β := by
+  rfl
+
 end Affine
