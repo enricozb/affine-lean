@@ -28,18 +28,22 @@ theorem small_step_count_β_eq_zero {e : Lambda} (h : e.count_β = 0) : e.small_
     have ⟨⟨he₁, he₂⟩, he₃⟩ := h
     simp only [count_β, he₁, he₂, he₃, small_step_count_β_eq_zero]
 
-theorem small_step_count_β_lt {e : Lambda} (h : e.count_β ≠ 0) : e.small_step.count_β < e.count_β := by
+theorem small_step_count_β_lt {e : Lambda} (h₁ : e.count_β ≠ 0) (h₂ : e.is_affine) :
+    e.small_step.count_β < e.count_β := by
   match e with
-  | .var x => simp only [count_β, ne_eq, not_true_eq_false] at h
+  | .var x => simp only [count_β, ne_eq, not_true_eq_false] at h₁
   | .abs _ e
   | .app (.var _) e₂ =>
-    simp only [count_β] at h
-    simp only [count_β, small_step_count_β_lt h]
+    simp only [count_β] at h₁
+    simp [is_affine, decide_eq_true_eq] at h₂
+    simp only [count_β, small_step_count_β_lt h₁ h₂.left]
   | .app (.abs x e₁) e₂ =>
-    simp only [count_β] at h
-    simp only [count_β, small_step, substₑ_count_β]
+    simp only [count_β, is_affine, decide_eq_true_eq] at h₁ h₂
+    have ⟨⟨he₁, _⟩, he₂, _⟩ := h₂
+    simp only [count_β, small_step, Lambda.substₑ_count_β he₁ he₂]
   | .app (.app e₁ e₂) e₃ =>
-    simp only [count_β] at h
+    simp only [count_β, is_affine, decide_eq_true_eq] at h₁ h₂
+    have ⟨⟨ha₁, ha₂, _⟩, ha₃, _⟩ := h₂
     simp only [count_β, small_step]
 
     /-
@@ -51,43 +55,26 @@ theorem small_step_count_β_lt {e : Lambda} (h : e.count_β ≠ 0) : e.small_ste
     by_cases he₁ : e₁.count_β = 0
     · simp only [he₁, small_step_count_β_eq_zero, zero_add]
       by_cases he₂ : e₂.count_β = 0
-      · simp only [he₁, he₂, zero_add] at h
-        simp only [he₂, small_step_count_β_eq_zero, zero_add, small_step_count_β_lt h]
+      · simp only [he₁, he₂, zero_add] at h₁
+        simp only [he₂, small_step_count_β_eq_zero, zero_add, small_step_count_β_lt h₁ ha₃]
       · by_cases he₃ : e₃.count_β = 0
-        · simp only [he₁, he₃, add_zero, zero_add] at h
-          simp only [he₃, small_step_count_β_eq_zero, small_step_count_β_lt h,
+        · simp only [he₁, he₃, add_zero, zero_add] at h₁
+          simp only [he₃, small_step_count_β_eq_zero, small_step_count_β_lt he₂ ha₂,
             zero_add, add_zero]
-        · exact add_lt_add (small_step_count_β_lt he₂) (small_step_count_β_lt he₃)
+        · exact add_lt_add (small_step_count_β_lt he₂ ha₂) (small_step_count_β_lt he₃ ha₃)
     · by_cases he₂ : e₂.count_β = 0
       · by_cases he₃ : e₃.count_β = 0
-        · simp only [he₂, he₃, add_zero] at h
-          simp only [he₂, he₃, small_step_count_β_eq_zero, add_zero, small_step_count_β_lt he₁]
+        · simp only [he₂, he₃, add_zero] at h₁
+          simp only [he₂, he₃, small_step_count_β_eq_zero, add_zero, small_step_count_β_lt he₁ ha₁]
         · simp only [he₂, small_step_count_β_eq_zero, add_zero]
-          exact add_lt_add (small_step_count_β_lt he₁) (small_step_count_β_lt he₃)
+          exact add_lt_add (small_step_count_β_lt he₁ ha₁) (small_step_count_β_lt he₃ ha₃)
       · by_cases he₃ : e₃.count_β = 0
         · simp only [he₃, small_step_count_β_eq_zero, add_zero,
-          add_lt_add (small_step_count_β_lt he₁) (small_step_count_β_lt he₂)]
+          add_lt_add (small_step_count_β_lt he₁ ha₁) (small_step_count_β_lt he₂ ha₂)]
         · refine' add_lt_add (add_lt_add _ _) _
-          · exact small_step_count_β_lt he₁
-          · exact small_step_count_β_lt he₂
-          · exact small_step_count_β_lt he₃
-
-def normalize (e : Lambda) : Lambda :=
-  if h : e.count_β = 0 then
-    e
-  else
-    have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt h
-    e.small_step.normalize
-termination_by e.count_β
-
-@[simp] theorem normalize_is_normal (e : Lambda) : e.normalize.is_normal :=
-  if h : e.count_β = 0 then by
-    rw [normalize, dif_pos h, is_normal, h]
-  else by
-    have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt h
-    rw [normalize, dif_neg h]
-    exact e.small_step.normalize_is_normal
-termination_by e.count_β
+          · exact small_step_count_β_lt he₁ ha₁
+          · exact small_step_count_β_lt he₂ ha₂
+          · exact small_step_count_β_lt he₃ ha₃
 
 @[simp] theorem small_step_count (e : Lambda) (x : ℕ) : e.small_step.count x ≤ e.count x := by
   match e with
@@ -156,38 +143,56 @@ termination_by e.count_β
         (Finset.union_subset_union e₁.small_step_free e₂.small_step_free)
         e₃.small_step_free
 
-@[simp] theorem normalize_of_var (x : ℕ) : (var x).normalize = var x := by
-  unfold normalize
-  simp only [count_β, dif_pos]
-
-@[simp] theorem normalize_of_abs (e : Lambda) (x : ℕ) : (abs x e).normalize = abs x e.normalize := by
-  unfold normalize
-  simp only [count_β, dif_pos]
-  by_cases hc : e.count_β = 0
-  · simp_rw [dif_pos hc]
-  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc
-    simp_rw [dif_neg hc, small_step, normalize_of_abs e.small_step]
+def normalize {e : Lambda} (ha : e.is_affine): Lambda :=
+  if hc : e.count_β = 0 then
+    e
+  else
+    have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt hc ha
+    normalize (small_step_is_affine ha)
 termination_by e.count_β
 
-@[simp] theorem normalize_free_eq (e : Lambda) : e.normalize.free ⊆ e.free := by
+@[simp] theorem normalize_is_normal {e : Lambda} (ha : e.is_affine) : (normalize ha).is_normal :=
+  if hc : e.count_β = 0 then by
+    rw [normalize, dif_pos hc, is_normal, hc]
+  else by
+    have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt hc ha
+    rw [normalize, dif_neg hc]
+    exact normalize_is_normal (small_step_is_affine ha)
+termination_by e.count_β
+
+-- @[simp] theorem normalize_of_var (x : ℕ) : (var x).normalize = var x := by
+--   unfold normalize
+--   simp only [count_β, dif_pos]
+
+-- @[simp] theorem normalize_of_abs (e : Lambda) (x : ℕ) : (abs x e).normalize = abs x e.normalize := by
+--   unfold normalize
+--   simp only [count_β, dif_pos]
+--   by_cases hc : e.count_β = 0
+--   · simp_rw [dif_pos hc]
+--   · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc
+--     simp_rw [dif_neg hc, small_step, normalize_of_abs e.small_step]
+-- termination_by e.count_β
+
+@[simp] theorem normalize_free_eq {e : Lambda} (h : e.is_affine) :
+    (normalize h).free ⊆ e.free := by
   unfold normalize
   simp only [count_β, dif_pos]
   by_cases hc : e.count_β = 0
   · simp_rw [dif_pos hc, Finset.Subset.refl]
-  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc
-    have h₁ : e.small_step.normalize.free ⊆ e.small_step.free := normalize_free_eq e.small_step
+  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc h
+    have h₁ : (normalize (small_step_is_affine h)).free ⊆ e.small_step.free := normalize_free_eq (small_step_is_affine h)
     have h₂ : e.small_step.free ⊆ e.free := small_step_free e
     simp_rw [dif_neg hc, Finset.Subset.trans h₁ h₂]
 termination_by e.count_β
 
-@[simp] theorem normalize_affine {e : Lambda} (h : e.is_affine) : e.normalize.is_affine := by
+@[simp] theorem normalize_affine {e : Lambda} (h : e.is_affine) : (normalize h).is_affine := by
   if hβ : e.count_β = 0 then
     rw [normalize, dif_pos hβ]
     exact h
   else
     rw [normalize, dif_neg hβ]
     simp only
-    have : e.small_step.count_β < e.count_β := small_step_count_β_lt hβ
+    have : e.small_step.count_β < e.count_β := small_step_count_β_lt hβ h
     exact normalize_affine (small_step_is_affine h)
 termination_by e.count_β
 
@@ -196,10 +201,10 @@ end Lambda
 namespace Affine
 
 def normalize_impl (e : Affine vs) : (vs' : Finset ℕ) × (_ : Affine vs') ×' (vs' ⊆ vs) :=
-  let e' := e.to_lambda.normalize
+  let e' := Lambda.normalize e.to_lambda_is_affine
   have he'_free_sub : e'.free ⊆ vs := by
     rw [e.free_eq, to_lambda_free_eq e]
-    exact Lambda.normalize_free_eq e.to_lambda
+    exact Lambda.normalize_free_eq e.to_lambda_is_affine
   have he'_is_affine : e'.is_affine := Lambda.normalize_affine e.to_lambda_is_affine
   ⟨e'.free, Affine.of_lambda he'_is_affine, he'_free_sub⟩
 
@@ -209,12 +214,12 @@ def normalize (e : Affine vs) : Affine e.normal_free := e.normalize_impl.2.1
 
 /-- Commutativity between normalization and conversions. -/
 theorem normalize_lambda_comm (e : Affine vs) :
-    e.normalize.to_lambda = e.to_lambda.normalize := by
+    e.normalize.to_lambda = Lambda.normalize e.to_lambda_is_affine := by
   simp_rw [normalize, normalize_impl, Lambda.of_lambda_to_lambda]
 
 /-- A normalized lambda term has no β-reductions remaining. -/
 theorem normalize_is_normal (e : Affine vs) : e.normalize.is_normal := by
   rw [is_normal, ← to_lambda_count_β_eq, normalize_lambda_comm, ← Lambda.is_normal]
-  exact Lambda.normalize_is_normal e.to_lambda
+  exact Lambda.normalize_is_normal e.to_lambda_is_affine
 
 end Affine
