@@ -16,6 +16,13 @@ inductive Affine : (vs : Finset ℕ) → Type
 
 namespace Affine
 
+/-- The size of a lambda, useful for `termination_by`. -/
+def depth (e : Affine vs) : ℕ :=
+  match e with
+  | .var _ => 0
+  | .abs _ e => 1 + e.depth
+  | .app e₁ e₂ _ => 1 + max e₁.depth e₂.depth
+
 /-- The free variables in an affine term. -/
 abbrev free (_ : Affine vs) : Finset ℕ := vs
 
@@ -49,4 +56,12 @@ def is_affine (e : Affine vs) : Bool :=
   | .abs x e => is_affine e ∧ e.count x ≤ 1
   | .app e₁ e₂ _ => is_affine e₁ ∧ is_affine e₂ ∧ ∀ x ∈ e.free, e₁.count x + e₂.count x ≤ 1
 
+def to_string (e : Affine vs) : String :=
+  match e with
+  | .var x => s!"{x}"
+  | .abs x e => s!"(λ {x}. {e.to_string})"
+  | .app e₁ e₂ _ => s!"{e₁.to_string} {e₂.to_string}"
+
 end Affine
+
+instance : ToString (Affine vs) := ⟨Affine.to_string⟩

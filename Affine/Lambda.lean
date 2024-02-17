@@ -1,6 +1,5 @@
 import Mathlib.Data.Nat.Basic
-import «Affine».Lemmas
-import «Affine».Misc
+import Mathlib.Data.Finset.Basic
 
 /--
   Lambda terms without any restrictions to the multiplicity of bound or free variables.
@@ -48,121 +47,6 @@ def to_string (e : Lambda) : String :=
   | .abs x e => s!"(λ {x}. {e.to_string})"
   | .app e₁ e₂ => s!"{e₁.to_string} {e₂.to_string}"
 
-section Lemmas
-
-@[simp] theorem app_depth_left : e₁.depth < (app e₁ e₂).depth := by
-  simp only [depth]
-  calc
-  e₁.depth ≤ max e₁.depth e₂.depth := le_max_left _ _
-  _        < 1 + max e₁.depth e₂.depth := lt_one_add _
-
-@[simp] theorem app_depth_right : e₂.depth < (app e₁ e₂).depth := by
-  simp only [depth]
-  calc
-  e₂.depth ≤ max e₁.depth e₂.depth := le_max_right _ _
-  _        < 1 + max e₁.depth e₂.depth := lt_one_add _
-
-@[simp] theorem abs_depth : e.depth < (abs x e).depth := by simp only [depth, lt_one_add]
-
-/-- Free variables occur at most once in affine lambdas. -/
-theorem affine_count_le_one {e : Lambda} (he : e.is_affine) (x : ℕ) : e.count x ≤ 1 := by
-  match e with
-  | .var x' => simp only [count, ite_le_one (le_refl 1) (zero_le 1)]
-  | .abs x' e => simp only [count, ite_le_one (zero_le 1) (affine_count_le_one he.1 x)]
-  | .app e₁ e₂ => simp only [count, he.2.2]
-
-end Lemmas
 end Lambda
 
 instance : ToString Lambda := ⟨Lambda.to_string⟩
-
-namespace Affine
-
-def to_lambda (e : Affine vs) : Lambda :=
-  match e with
-  | .var x => .var x
-  | .abs x e => .abs x e.to_lambda
-  | .app e₁ e₂ _ => .app e₁.to_lambda e₂.to_lambda
-
-theorem to_lambda_is_affine (e : Affine vs) : e.to_lambda.is_affine := by sorry
-
-theorem count_eq_to_lambda_count (e : Affine vs) : ∀ x, e.to_lambda.count x = e.count x := by
-  match e with
-  | .var x => simp only [Lambda.count, count, forall_const]
-  | .abs x e => simp_rw [Lambda.count, count, count_eq_to_lambda_count e, forall_const]
-  | .app e₁ e₂ h => simp_rw [Lambda.count, count, count_eq_to_lambda_count e₁,
-    count_eq_to_lambda_count e₂, forall_const]
-
-/--
-  `Affine` from `Lambda`.
-
-  We provide 3-tuple of the finset of free variables and a proof of equality `Affine.to_lambda`
-  as it's needed during induction for the `.app` case to produce the null_intersection argument
-  of `Affine.app`.
--/
-def of_lambda_impl (e : Lambda) (he : e.is_affine) :
-    (vs : Finset ℕ) × (e' : Affine vs) ×' (e = e'.to_lambda) :=
-  match e with
-  | .var x => ⟨_, .var x, by simp only [to_lambda]⟩
-
-  | .abs x e =>
-    let ⟨e_free, e, he⟩ := of_lambda_impl e he.left
-    ⟨e_free \ {x}, .abs x e, by simp only [he, to_lambda]⟩
-
-  | .app e₁ e₂ =>
-    have ⟨h₁, h₂, h⟩ := he
-    let ⟨⟨e₁_free, e₁', he₁⟩, ⟨e₂_free, e₂', he₂⟩⟩ :=
-      (of_lambda_impl e₁ h₁, of_lambda_impl e₂ h₂)
-    have h_inter : e₁_free ∩ e₂_free = ∅ := by
-      simp_rw [he₁, he₂, count_eq_to_lambda_count] at h
-
-      by_contra h_inter
-      have ⟨v, hv⟩ := Finset.nonempty_of_ne_empty h_inter
-      have ⟨hv₁, hv₂⟩ := Finset.mem_inter.mp hv
-      have hv₁ := (count_ne_zero_iff e₁' v).mpr hv₁
-      have hv₂ := (count_ne_zero_iff e₂' v).mpr hv₂
-      exact Or.elim (Nat.add_le_one (h v)) hv₁ hv₂
-
-    have h_eq : Lambda.app e₁ e₂ = (Affine.app e₁' e₂' h_inter).to_lambda := by
-      simp only [he₁, he₂, to_lambda]
-
-    ⟨e₁_free ∪ e₂_free, .app e₁' e₂' h_inter, h_eq⟩
-
-def of_lambda (e : Lambda) (he : e.is_affine) : Affine (of_lambda_impl e he).1 :=
-  (Affine.of_lambda_impl e he).2.1
-
-theorem of_lambda_to_lambda (e : Lambda) (he : e.is_affine) :
-    e = (Affine.of_lambda e he).to_lambda := (of_lambda_impl e he).2.2
-
-theorem to_lambda_of_lambda_free (e : Affine vs) :
-  vs = (Affine.of_lambda e.to_lambda e.to_lambda_is_affine).free := by sorry
-
--- theorem to_lambda_of_lambda (e : Affine vs) :
---     e = to_lambda_of_lambda_free e ▸ (Affine.of_lambda e.to_lambda _) := by
---   match e with
---   | .var x => rfl
---   | .abs x e =>
---     have he := to_lambda_of_lambda e
---     rw [of_lambda] at he
---     simp_rw [to_lambda, of_lambda, of_lambda_impl, he]
-
-
---   | .app e₁ e₂ h => sorry
-
-end Affine
-
-instance : ToString (Affine vs) := ⟨fun e => e.to_lambda.to_string⟩
-
-instance : ToString (Finset ℕ) := ⟨
-  let trans : IsTrans String (· < ·) := sorry
-  let trans : IsAntisymm String (· < ·) := sorry
-  let trans : IsTotal String (· < ·) := sorry
-  fun f => s!"\{{", ".intercalate (f.val.map ToString.toString |>.sort (· < ·))}}"
-⟩
-
-#eval (Affine.abs 1 (.app (.var 1) (.var 2) (by simp))) -- (λ 1. 1 2)
-
-#eval (Affine.abs 1 (.app (.var 1) (.var 2) (by simp))).vars -- {1, 2}
-
--- next line will error since `1` occurs twice.
--- #eval (Affine.abs 1 (.app (.var 1) (.var 1) (by simp)))

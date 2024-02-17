@@ -1,6 +1,110 @@
-import «Affine».Basic
+import «Affine».Affine
+import «Affine».Lambda
 
-open Affine
+namespace Lambda
+
+@[simp] theorem app_depth_left : e₁.depth < (app e₁ e₂).depth := by
+  simp only [depth, lt_of_le_of_lt (le_max_left e₁.depth e₂.depth) (lt_one_add _)]
+
+@[simp] theorem app_depth_right : e₂.depth < (app e₁ e₂).depth := by
+  simp_rw [depth, lt_of_le_of_lt (le_max_right e₁.depth e₂.depth) (lt_one_add _)]
+
+@[simp] theorem abs_depth : e.depth < (abs x e).depth := by simp only [depth, lt_one_add]
+
+@[simp] theorem is_affine_of_var : (var x).is_affine := by
+  simp only [is_affine]
+
+@[simp] theorem is_affine_of_abs : (abs x e).is_affine ↔ is_affine e ∧ count e x ≤ 1:= by
+  simp only [is_affine, decide_eq_true_eq]
+
+@[simp] theorem is_affine_of_app :
+    (app e₁ e₂).is_affine ↔ is_affine e₁ ∧
+                            is_affine e₂ ∧
+                            ∀ x ∈ free (app e₁ e₂), count e₁ x + count e₂ x ≤ 1 := by
+  simp only [is_affine, decide_eq_true_eq]
+
+/-- Variables that are not free in `e` have count of `0`. -/
+theorem count_not_mem_free {e : Lambda} {x : ℕ} (h : x ∉ e.free) : e.count x = 0 := by
+  match e with
+  | .var x' => simp only [count, if_neg (Finset.not_mem_singleton.mp h)]
+  | .abs x' e =>
+    simp only [free] at h
+    have hx : x ∉ e.free ∨ ¬x ∉ {x'} := not_and_or.mp (Finset.mem_sdiff.not.mp h)
+    by_cases hx' : x = x'
+    · simp only [count, if_pos hx']
+    · simp only [Finset.mem_singleton.not.mpr hx', or_false, not_not] at hx
+      simp only [count, if_neg hx', count_not_mem_free hx]
+
+  | .app e₁ e₂ =>
+    have ⟨hx₁, hx₂⟩ : x ∉ e₁.free ∧ x ∉ e₂.free := Finset.not_mem_union.mp h
+    simp only [count, count_not_mem_free hx₁, count_not_mem_free hx₂]
+
+/-- Free variables occur at most once in affine lambdas. -/
+theorem affine_count_le_one {e : Lambda} (he : e.is_affine) (x : ℕ) : e.count x ≤ 1 := by
+  wlog hx : x ∈ e.free
+  · simp only [count_not_mem_free hx, zero_le]
+
+  match e with
+  | .var x' => simp only [count, ite_le_one (le_refl 1) (zero_le 1)]
+  | .abs x' e => simp only [count, ite_le_one (zero_le 1)
+    (affine_count_le_one (is_affine_of_abs.mp he).1 x)]
+  | .app e₁ e₂ => simp only [count, (is_affine_of_app.mp he).2.2 x hx]
+
+end Lambda
+
+namespace Affine
+
+@[simp] theorem app_depth_left : e₁.depth < (app e₁ e₂ h).depth := by
+  simp only [depth, lt_of_le_of_lt (le_max_left e₁.depth e₂.depth) (lt_one_add _)]
+
+@[simp] theorem app_depth_right : e₂.depth < (app e₁ e₂ h).depth := by
+  simp_rw [depth, lt_of_le_of_lt (le_max_right e₁.depth e₂.depth) (lt_one_add _)]
+
+@[simp] theorem abs_depth : e.depth < (abs x e).depth := by simp only [depth, lt_one_add]
+
+@[simp] theorem is_affine_of_var : (var x).is_affine := by simp only [is_affine]
+
+-- @[simp] theorem is_affine_of_abs : is_affine (abs x e) ∧ count (abs x e) x ≤ 1 := by
+--   simp [is_affine, count]
+
+-- @[simp] theorem is_affine_of_app :
+--     (app e₁ e₂ h).is_affine ↔ is_affine e₁ ∧
+--                             is_affine e₂ ∧
+--                             ∀ x ∈ free (app e₁ e₂ h), count e₁ x + count e₂ x ≤ 1 := by
+--   simp only [is_affine, decide_eq_true_eq]
+
+/-- Variables that are not free in `e` have count of `0`. -/
+theorem count_not_mem_free {e : Affine vs} {x : ℕ} (h : x ∉ e.free) : e.count x = 0 := by
+  match e with
+  | .var x' => simp only [count, Finset.mem_singleton.not.mp h, ↓reduceIte]
+  | .abs x' e =>
+    have hx : x ∉ e.free ∨ ¬x ∉ {x'} := not_and_or.mp (Finset.mem_sdiff.not.mp h)
+    by_cases hx' : x = x'
+    · simp only [count, if_pos hx']
+    · simp only [Finset.mem_singleton.not.mpr hx', or_false, not_not] at hx
+      simp only [count, if_neg hx', count_not_mem_free hx]
+  | .app e₁ e₂ h' =>
+    have ⟨hx₁, hx₂⟩ : x ∉ e₁.free ∧ x ∉ e₂.free := Finset.not_mem_union.mp h
+    simp only [count, count_not_mem_free hx₁, count_not_mem_free hx₂]
+
+/-- Free variables occur at most once in affine lambdas. -/
+theorem affine_count_le_one (e : Affine vs) (x : ℕ) : e.count x ≤ 1 := by
+  wlog hx : x ∈ e.free
+  · simp only [count_not_mem_free hx, zero_le]
+
+  match e with
+  | .var x' => simp only [count, ite_le_one (le_refl 1) (zero_le 1)]
+  | .abs x' e => simp only [count, ite_le_one (zero_le 1) (affine_count_le_one e x)]
+  | .app e₁ e₂ h =>
+    apply Or.elim (Finset.mem_union.mp hx)
+    · intro hx₁
+      have hx₂ : x ∉ e₂.free := fun hx₂ =>
+        Finset.eq_empty_iff_forall_not_mem.mp h x (Finset.mem_inter.mpr ⟨hx₁, hx₂⟩)
+      simp only [count, count_not_mem_free hx₂, add_zero, affine_count_le_one e₁ x]
+    · intro hx₂
+      have hx₁ : x ∉ e₁.free := fun hx₁ =>
+        Finset.eq_empty_iff_forall_not_mem.mp h x (Finset.mem_inter.mpr ⟨hx₁, hx₂⟩)
+      simp only [count, count_not_mem_free hx₁, zero_add, affine_count_le_one e₂ x]
 
 /-- For affine terms `e : Affine vs`, `vs` represents occurrences of free variables. -/
 theorem count_ne_zero_iff (e : Affine vs) (x : ℕ) : e.count x ≠ 0 ↔ x ∈ vs := by
@@ -42,63 +146,4 @@ theorem count_ne_zero_iff (e : Affine vs) (x : ℕ) : e.count x ≠ 0 ↔ x ∈ 
 
       contradiction
 
-/--
-  If a term is affine then all free variables occur at most once. This is a useful lemma when
-  showing that `e : Affine vs` is affine.
-
-  Note: this does not imply a term is affine, as `e := (λ x. x x)` is not affine but has no free
-  variables, and therefore `∀ x, e.count x = 0`.
--/
-theorem is_affine_count_le_one (h : is_affine e) : ∀ x, e.count x ≤ 1 := by
-  intro x
-
-  match e with
-  | .var x' =>
-    by_cases hx' : x = x'
-    · rw [count, if_pos hx']
-    · simp_rw [count, if_neg hx', Nat.zero_le 1]
-
-  | .abs x' e =>
-    by_cases hx' : x = x'
-    · simp_rw [count, if_pos hx', Nat.zero_le 1]
-    · simp only [is_affine] at h
-      simp_rw [count, if_neg hx', is_affine_count_le_one h.left x]
-
-  | @Affine.app vs₁ vs₂ e₁ e₂ h' =>
-    unfold count
-    simp only [is_affine] at h
-    have ⟨h_affine_e₁, h_affine_e₂, _⟩ := h
-    by_cases h₁ : x ∈ vs₁
-    · by_cases h₂ : x ∈ vs₂
-      · have : x ∈ vs₁ ∩ vs₂ := Finset.mem_inter.mpr ⟨h₁, h₂⟩
-        have : (vs₁ ∩ vs₂) ≠ ∅ := Finset.nonempty_iff_ne_empty.mp (Set.nonempty_of_mem this)
-        contradiction
-      · simp_rw [of_not_not ((count_ne_zero_iff e₂ x).not.mpr h₂), add_zero,
-          is_affine_count_le_one h_affine_e₁ x]
-
-    · simp_rw [of_not_not ((count_ne_zero_iff e₁ x).not.mpr h₁), zero_add,
-        is_affine_count_le_one h_affine_e₂ x]
-
-/-- Terms of type `Affine` are affine. -/
-theorem affine_is_affine (e : Affine vs) : is_affine e := by
-  unfold is_affine
-
-  match e with
-  | .var x => simp only
-  | .abs x e => exact ⟨affine_is_affine e, is_affine_count_le_one (affine_is_affine e) x⟩
-  | .app e₁ e₂ h =>
-    refine' ⟨affine_is_affine e₁, affine_is_affine e₂, _⟩
-    intro x'
-    have : count e₁ x' = 0 ∨ count e₂ x' = 0 := by
-      by_contra hc
-      rw [not_or] at hc
-      have : x' ∈ e₁.free ∩ e₂.free := Finset.mem_inter.mpr ⟨
-        (count_ne_zero_iff e₁ x').mp hc.left,
-        (count_ne_zero_iff e₂ x').mp hc.right
-      ⟩
-      rw [h] at this
-      contradiction
-
-    apply Or.elim this
-    · intro h₁; simp_rw [h₁, zero_add, is_affine_count_le_one (affine_is_affine e₂) x']
-    · intro h₂; simp_rw [h₂, add_zero, is_affine_count_le_one (affine_is_affine e₁) x']
+end Affine
