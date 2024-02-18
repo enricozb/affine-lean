@@ -20,6 +20,11 @@ theorem inter_eq_empty [DecidableEq α] {s₁ s₂ : Finset α} (h : (s₁ ∩ s
     ¬(x ∈ s₁ ∧ x ∈ s₂) :=
   fun hmem => not_mem_empty _ (h ▸ mem_inter.mpr hmem)
 
+theorem sdiff_comm [DecidableEq α] {s u t : Finset α} : (s \ u) \ t = (s \ t) \ u := by
+  ext v
+  simp only [mem_sdiff]
+  exact Iff.intro (fun ⟨⟨hs, hu⟩, ht⟩ => ⟨⟨hs, ht⟩, hu⟩) (fun ⟨⟨hs, ht⟩, hu⟩ => ⟨⟨hs, hu⟩, ht⟩)
+
 theorem inter_union_singleton_cancel [DecidableEq α] {s₁ s₂ : Finset α} (hx : x ∉ s₂) :
     (s₁ ∪ {x}) ∩ s₂ = s₁ ∩ s₂ := by
   ext v

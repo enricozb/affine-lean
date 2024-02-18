@@ -50,11 +50,42 @@ theorem substᵥ_count {e : Lambda} (hx : x ≠ z) (hy₁ : y ≠ z) (hy₂ : y 
     · rw [if_pos hx']
     · rw [if_neg hx']
 
-theorem substᵥ_free_mem_free {e : Lambda} (he : e.is_affine) (hx : x ∈ e.free) (hy : y ∉ e.vars) :
-    (e.substᵥ x y).free = e.free \ {x} ∪ {y} := by sorry
-
 theorem substᵥ_free_not_mem_free {e : Lambda} (hx : x ∉ e.free) :
     (e.substᵥ x y).free = e.free := by sorry
+
+theorem substᵥ_free_mem_free {e : Lambda} (he : e.is_affine) (hx : x ∈ e.free) (hy : y ∉ e.vars) :
+    (e.substᵥ x y).free = e.free \ {x} ∪ {y} := by
+  match e with
+  | .var x' =>
+    simp only [substᵥ, apply_ite, free, Finset.mem_singleton] at *
+    simp only [hx, if_pos, Finset.sdiff_self, Finset.empty_union]
+  | .abs x' e =>
+    simp only [substᵥ, free, vars, is_affine_of_abs, Finset.mem_sdiff, Finset.mem_singleton,
+      Finset.not_mem_union, apply_ite] at *
+    have ⟨he, _⟩ := he
+    have ⟨hxe, hxn⟩ := hx
+    have ⟨hye, hyn⟩ := hy
+    have hyx' : x' ∉ ({y} : Finset ℕ) := Finset.mem_singleton.not.mpr (fun h => hyn h.symm)
+    rw [if_neg hxn, substᵥ_free_mem_free he hxe hye, Finset.union_sdiff_distrib,
+      Finset.sdiff_singleton_eq_self hyx', Finset.sdiff_comm]
+  | .app e₁ e₂ =>
+    simp only [substᵥ, free, vars, is_affine_of_app, Finset.mem_union, Finset.not_mem_union,
+      not_or] at *
+    have ⟨hy₁, hy₂⟩ := hy
+    have ⟨he₁, he₂, hfree₁₂⟩ := he
+    refine' Or.elim hx (fun hxe₁ => _) (fun hxe₂ => _)
+    · have hxe₂ : x ∉ e₂.free := (fun hxe₂ => Finset.inter_eq_empty hfree₁₂ ⟨hxe₁, hxe₂⟩)
+      conv =>
+        lhs
+        rw [substᵥ_free_mem_free he₁ hxe₁ hy₁, substᵥ_free_not_mem_free hxe₂,
+          ← Finset.sdiff_singleton_eq_self hxe₂, Finset.union_assoc, Finset.union_comm {y},
+          ← Finset.union_assoc, ← Finset.union_sdiff_distrib]
+    · have hxe₁ : x ∉ e₁.free := (fun hxe₁ => Finset.inter_eq_empty hfree₁₂ ⟨hxe₁, hxe₂⟩)
+      conv =>
+        lhs
+        rw [substᵥ_free_mem_free he₂ hxe₂ hy₂, substᵥ_free_not_mem_free hxe₁,
+          ← Finset.sdiff_singleton_eq_self hxe₁, ← Finset.union_assoc,
+          ← Finset.union_sdiff_distrib]
 
 theorem substᵥ_is_affine {e : Lambda} (he : e.is_affine) (hy : y ∉ e.vars) :
     (e.substᵥ x y).is_affine := by
