@@ -46,6 +46,13 @@ def free (e : Lambda) : Finset ℕ :=
   | .abs x e => e.free \ {x}
   | .app e₁ e₂ => e₁.free ∪ e₂.free
 
+/-- All variables in `e`. -/
+def vars (e : Lambda) : Finset ℕ :=
+  match e with
+  | .var x => {x}
+  | .abs x e => e.vars ∪ {x}
+  | .app e₁ e₂ => e₁.vars ∪ e₂.vars
+
 /-- Whether all variables occur at most once. -/
 def is_affine (e : Lambda) : Bool :=
   match e with

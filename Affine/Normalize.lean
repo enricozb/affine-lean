@@ -12,6 +12,32 @@ def small_step (e : Lambda) : Lambda :=
   | .app (.abs x e₁) e₂ => e₁.substₑ x e₂
   | .app (.app e₁ e₂) e₃ => .app (.app e₁.small_step e₂.small_step) e₃.small_step
 
+@[simp] theorem small_step_free (e : Lambda) : e.small_step.free ⊆ e.free := by
+  match e with
+  | .var x' => simp only [free, Finset.Subset.refl]
+  | .abs x' e =>
+    simp only [free, small_step_free e, Finset.sdiff_subset_sdiff _ (Finset.Subset.refl _)]
+  | .app (.var x') e₂ =>
+    simp only [free, small_step_free e₂, Finset.union_subset_union (Finset.Subset.refl _)]
+  | .app (.abs x' e₁) e₂ => simp only [free, small_step, substₑ_free]
+  | .app (.app e₁ e₂) e₃ =>
+    simp only [count, free, small_step]
+    exact Finset.union_subset_union
+      (Finset.union_subset_union e₁.small_step_free e₂.small_step_free)
+      e₃.small_step_free
+
+@[simp] theorem small_step_count (e : Lambda) (x : ℕ) : e.small_step.count x ≤ e.count x := by
+  match e with
+  | .var x' => simp only [count, le_refl]
+  | .abs x' e => simp only [count, small_step_count e x, ite_le_ite (le_refl 0)]
+  | .app (.var x') e₂ => simp only [count, small_step_count e₂ x, add_le_add_iff_left]
+  | .app (.abs x' e₁) e₂ => simp only [count, small_step, substₑ_count, le_refl]
+  | .app (.app e₁ e₂) e₃ =>
+    simp only [count, small_step, small_step_count]
+    exact add_le_add
+      (add_le_add (e₁.small_step_count x) (e₂.small_step_count x))
+      (e₃.small_step_count x)
+
 theorem small_step_count_β_eq_zero {e : Lambda} (h : e.count_β = 0) : e.small_step.count_β = 0 := by
   match e with
   | .var _ => simp only [count_β]
@@ -76,32 +102,6 @@ theorem small_step_count_β_lt {e : Lambda} (h₁ : e.count_β ≠ 0) (h₂ : e.
           · exact small_step_count_β_lt he₂ ha₂
           · exact small_step_count_β_lt he₃ ha₃
 
-@[simp] theorem small_step_count (e : Lambda) (x : ℕ) : e.small_step.count x ≤ e.count x := by
-  match e with
-  | .var x' => simp only [count, le_refl]
-  | .abs x' e => simp only [count, small_step_count e x, ite_le_ite (le_refl 0)]
-  | .app (.var x') e₂ => simp only [count, small_step_count e₂ x, add_le_add_iff_left]
-  | .app (.abs x' e₁) e₂ => simp only [count, small_step, substₑ_count, le_refl]
-  | .app (.app e₁ e₂) e₃ =>
-    simp only [count, small_step, small_step_count]
-    exact add_le_add
-      (add_le_add (e₁.small_step_count x) (e₂.small_step_count x))
-      (e₃.small_step_count x)
-
-@[simp] theorem small_step_free (e : Lambda) : e.small_step.free ⊆ e.free := by
-  match e with
-  | .var x' => simp only [free, Finset.Subset.refl]
-  | .abs x' e =>
-    simp only [free, small_step_free e, Finset.sdiff_subset_sdiff _ (Finset.Subset.refl _)]
-  | .app (.var x') e₂ =>
-    simp only [free, small_step_free e₂, Finset.union_subset_union (Finset.Subset.refl _)]
-  | .app (.abs x' e₁) e₂ => simp only [free, small_step, substₑ_free]
-  | .app (.app e₁ e₂) e₃ =>
-    simp only [count, free, small_step, small_step_count]
-    exact Finset.union_subset_union
-      (Finset.union_subset_union e₁.small_step_free e₂.small_step_free)
-      e₃.small_step_free
-
 @[simp] theorem small_step_is_affine {e : Lambda} (h : e.is_affine) : e.small_step.is_affine := by
   match e with
   | .var x => simp only [small_step, h]
@@ -126,7 +126,7 @@ theorem small_step_count_β_lt {e : Lambda} (h₁ : e.count_β ≠ 0) (h₂ : e.
   | .app (.abs x e₁) e₂ =>
     simp only [is_affine_of_app, is_affine_of_abs] at h
     have ⟨⟨he₁, _⟩, he₂, _⟩ := h
-    simp only [small_step, is_affine_substₑ he₁ he₂]
+    simp only [small_step, substₑ_is_affine he₁ he₂]
 
   | .app (.app e₁ e₂) e₃ =>
     simp only [is_affine_of_app, free] at h
@@ -143,83 +143,29 @@ theorem small_step_count_β_lt {e : Lambda} (h₁ : e.count_β ≠ 0) (h₂ : e.
         (Finset.union_subset_union e₁.small_step_free e₂.small_step_free)
         e₃.small_step_free
 
-def normalize {e : Lambda} (ha : e.is_affine): Lambda :=
-  if hc : e.count_β = 0 then
-    e
-  else
-    have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt hc ha
-    normalize (small_step_is_affine ha)
-termination_by e.count_β
-
-@[simp] theorem normalize_is_normal {e : Lambda} (ha : e.is_affine) : (normalize ha).is_normal :=
-  if hc : e.count_β = 0 then by
-    rw [normalize, dif_pos hc, is_normal, hc]
-  else by
-    have : e.small_step.count_β < e.count_β := e.small_step_count_β_lt hc ha
-    rw [normalize, dif_neg hc]
-    exact normalize_is_normal (small_step_is_affine ha)
-termination_by e.count_β
-
--- @[simp] theorem normalize_of_var (x : ℕ) : (var x).normalize = var x := by
---   unfold normalize
---   simp only [count_β, dif_pos]
-
--- @[simp] theorem normalize_of_abs (e : Lambda) (x : ℕ) : (abs x e).normalize = abs x e.normalize := by
---   unfold normalize
---   simp only [count_β, dif_pos]
---   by_cases hc : e.count_β = 0
---   · simp_rw [dif_pos hc]
---   · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc
---     simp_rw [dif_neg hc, small_step, normalize_of_abs e.small_step]
--- termination_by e.count_β
-
-@[simp] theorem normalize_free_eq {e : Lambda} (h : e.is_affine) :
-    (normalize h).free ⊆ e.free := by
-  unfold normalize
-  simp only [count_β, dif_pos]
-  by_cases hc : e.count_β = 0
-  · simp_rw [dif_pos hc, Finset.Subset.refl]
-  · have : e.small_step.count_β < e.count_β := small_step_count_β_lt hc h
-    have h₁ : (normalize (small_step_is_affine h)).free ⊆ e.small_step.free := normalize_free_eq (small_step_is_affine h)
-    have h₂ : e.small_step.free ⊆ e.free := small_step_free e
-    simp_rw [dif_neg hc, Finset.Subset.trans h₁ h₂]
-termination_by e.count_β
-
-@[simp] theorem normalize_affine {e : Lambda} (h : e.is_affine) : (normalize h).is_affine := by
-  if hβ : e.count_β = 0 then
-    rw [normalize, dif_pos hβ]
-    exact h
-  else
-    rw [normalize, dif_neg hβ]
-    simp only
-    have : e.small_step.count_β < e.count_β := small_step_count_β_lt hβ h
-    exact normalize_affine (small_step_is_affine h)
-termination_by e.count_β
-
 end Lambda
 
 namespace Affine
 
-def normalize_impl (e : Affine vs) : (vs' : Finset ℕ) × (_ : Affine vs') ×' (vs' ⊆ vs) :=
-  let e' := Lambda.normalize e.to_lambda_is_affine
-  have he'_free_sub : e'.free ⊆ vs := by
-    rw [e.free_eq, to_lambda_free_eq e]
-    exact Lambda.normalize_free_eq e.to_lambda_is_affine
-  have he'_is_affine : e'.is_affine := Lambda.normalize_affine e.to_lambda_is_affine
-  ⟨e'.free, Affine.of_lambda he'_is_affine, he'_free_sub⟩
+def small_step_impl (e : Affine vs) : (vs' : Finset ℕ) × (Affine vs') :=
+  let e' := e.to_lambda.small_step
+  have he'_is_affine : e'.is_affine := Lambda.small_step_is_affine e.to_lambda_is_affine
+  ⟨e'.free, Affine.of_lambda he'_is_affine⟩
 
-def normal_free (e : Affine vs) : Finset ℕ := e.normalize_impl.1
+def small_step_free (e : Affine vs) : Finset ℕ := e.small_step_impl.1
+def small_step (e : Affine vs) : Affine e.small_step_free := e.small_step_impl.2
 
-def normalize (e : Affine vs) : Affine e.normal_free := e.normalize_impl.2.1
+theorem small_step_count_β_lt {e : Affine vs} (hβ : e.count_β ≠ 0) :
+    e.small_step.count_β < e.count_β := by
+  simp only [small_step, small_step_impl, ← to_lambda_count_β_eq, Lambda.of_lambda_to_lambda]
+  apply Lambda.small_step_count_β_lt (e.to_lambda_count_β_eq ▸ hβ) e.to_lambda_is_affine
 
-/-- Commutativity between normalization and conversions. -/
-theorem normalize_lambda_comm (e : Affine vs) :
-    e.normalize.to_lambda = Lambda.normalize e.to_lambda_is_affine := by
-  simp_rw [normalize, normalize_impl, Lambda.of_lambda_to_lambda]
-
-/-- A normalized lambda term has no β-reductions remaining. -/
-theorem normalize_is_normal (e : Affine vs) : e.normalize.is_normal := by
-  rw [is_normal, ← to_lambda_count_β_eq, normalize_lambda_comm, ← Lambda.is_normal]
-  exact Lambda.normalize_is_normal e.to_lambda_is_affine
+def normalize (e : Affine vs) : (vs' : Finset ℕ) × (Affine vs') :=
+  if hβ : e.count_β = 0 then
+    ⟨vs, e⟩
+  else
+    have := small_step_count_β_lt hβ
+    normalize e.small_step
+termination_by e.count_β
 
 end Affine
