@@ -32,8 +32,60 @@ def substₑ (e₁ : Lambda) (x : ℕ) (e₂ : Lambda) : Lambda :=
       .abs x' (e₁.substₑ x e₂)
 termination_by e₁.depth
 
+theorem substᵥ_count {e : Lambda} (hx : x ≠ z) (hy₁ : y ≠ z) (hy₂ : y ∉ e.vars) :
+    (e.substᵥ x y).count z = e.count z := by
+  match e with
+  | .var x' =>
+    simp_rw [substᵥ, apply_ite (count · z), count, if_neg hy₁.symm]
+    by_cases hx' : x = x'
+    · rw [if_pos hx', ← hx', if_neg hx.symm]
+    · rw [if_neg hx']
+  | .app a₁ a₂ =>
+    simp only [vars, Finset.not_mem_union] at hy₂
+    simp_rw [substᵥ, count, substᵥ_count hx hy₁ hy₂.left, substᵥ_count hx hy₁ hy₂.right]
+  | .abs x' e =>
+    simp only [vars, Finset.not_mem_union] at hy₂
+    simp_rw [substᵥ, apply_ite (count · z), count, substᵥ_count hx hy₁ hy₂.left]
+    by_cases hx' : x = x'
+    · rw [if_pos hx']
+    · rw [if_neg hx']
+
+theorem substᵥ_free_mem_free {e : Lambda} (he : e.is_affine) (hx : x ∈ e.free) (hy : y ∉ e.vars) :
+    (e.substᵥ x y).free = e.free \ {x} ∪ {y} := by sorry
+
+theorem substᵥ_free_not_mem_free {e : Lambda} (hx : x ∉ e.free) :
+    (e.substᵥ x y).free = e.free := by sorry
+
 theorem substᵥ_is_affine {e : Lambda} (he : e.is_affine) (hy : y ∉ e.vars) :
-    (e.substᵥ x y).is_affine := by sorry
+    (e.substᵥ x y).is_affine := by
+  match e with
+  | .var x' => simp only [substᵥ, apply_ite, is_affine, ite_self]
+  | .abs x' e =>
+    simp only [vars, Finset.mem_union, not_or, Finset.mem_singleton] at hy
+    have ⟨he, hc⟩ := is_affine_of_abs.mp he
+    by_cases hx : x = x'
+    · simp_rw [substᵥ, if_pos hx, is_affine_of_abs, hc, he, and_self]
+    · simp_rw [substᵥ, if_neg hx, is_affine_of_abs, substᵥ_is_affine he hy.left,
+        substᵥ_count hx hy.right hy.left, hc, and_self]
+  | .app a₁ a₂ =>
+    simp only [vars, Finset.not_mem_union] at hy
+    have ⟨hy₁, hy₂⟩ := hy
+    have hy₁' : y ∉ a₁.free := fun hy₁' => hy₁ (Finset.mem_of_subset a₁.free_subset_vars hy₁')
+    have hy₂' : y ∉ a₂.free := fun hy₂' => hy₂ (Finset.mem_of_subset a₂.free_subset_vars hy₂')
+    have ⟨ha₁, ha₂, hfree₁₂⟩ := is_affine_of_app.mp he
+    simp only [substᵥ, is_affine_of_app, substᵥ_is_affine ha₁ hy₁, substᵥ_is_affine ha₂ hy₂,
+      true_and]
+    by_cases hxa₁ : x ∈ a₁.free
+    · have hxa₂ : x ∉ a₂.free := fun hxa₂ => Finset.inter_eq_empty hfree₁₂ ⟨hxa₁, hxa₂⟩
+      rw [substᵥ_free_mem_free ha₁ hxa₁ hy₁, substᵥ_free_not_mem_free hxa₂,
+        Finset.inter_union_singleton_cancel hy₂', ← Finset.sdiff_singleton_eq_self hxa₂,
+        Finset.sdiff_inter_sdiff_cancel, hfree₁₂, Finset.empty_sdiff]
+    · simp only [substᵥ_free_not_mem_free hxa₁]
+      by_cases hxa₂ : x ∈ a₂.free
+      · rw [substᵥ_free_mem_free ha₂ hxa₂ hy₂, Finset.inter_comm a₁.free,
+          Finset.inter_union_singleton_cancel hy₁', ← Finset.sdiff_singleton_eq_self hxa₁,
+          Finset.sdiff_inter_sdiff_cancel, Finset.inter_comm, hfree₁₂, Finset.empty_sdiff]
+      · rw [substᵥ_free_not_mem_free hxa₂, hfree₁₂]
 
 theorem substᵥ_count_β {e : Lambda} : (e.substᵥ x y).count_β = e.count_β := by
   match e with

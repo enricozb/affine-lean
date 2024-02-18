@@ -16,6 +16,26 @@ theorem ite_lt {P : Prop} [Decidable P] {a b c : ℕ} (ha : a < c) (hb : b < c) 
 
 namespace Finset
 
+theorem inter_eq_empty [DecidableEq α] {s₁ s₂ : Finset α} (h : (s₁ ∩ s₂) = ∅) :
+    ¬(x ∈ s₁ ∧ x ∈ s₂) :=
+  fun hmem => not_mem_empty _ (h ▸ mem_inter.mpr hmem)
+
+theorem inter_union_singleton_cancel [DecidableEq α] {s₁ s₂ : Finset α} (hx : x ∉ s₂) :
+    (s₁ ∪ {x}) ∩ s₂ = s₁ ∩ s₂ := by
+  ext v
+  simp only [mem_inter, mem_union, mem_singleton, and_congr_left_iff, or_iff_left_iff_imp]
+  intro hvs₁ hvx
+  absurd hx (hvx ▸ hvs₁)
+  simp only [not_false_eq_true]
+
+theorem sdiff_inter_sdiff_cancel [DecidableEq α] (s₁ s₂ u : Finset α) :
+    (s₁ \ u) ∩ (s₂ \ u) = (s₁ ∩ s₂) \ u := by
+  ext v
+  simp only [mem_inter, mem_sdiff]
+  exact Iff.intro
+    (fun ⟨⟨hvs₁, hvnu⟩, hvs₂, _⟩ => ⟨⟨hvs₁, hvs₂⟩, hvnu⟩)
+    (fun ⟨⟨hvs₁, hvs₂⟩, hvnu⟩ => ⟨⟨hvs₁, hvnu⟩, hvs₂, hvnu⟩)
+
 /-- A "fresh" value not in `Finset ℕ`. -/
 def fresh (s : Finset ℕ) : ℕ := if h : s.Nonempty then s.max' h + 1 else 0
 

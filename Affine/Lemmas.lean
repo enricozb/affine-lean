@@ -4,6 +4,16 @@ import «Affine».Misc
 
 namespace Lambda
 
+theorem free_subset_vars (e : Lambda) : e.free ⊆ e.vars := by
+  match e with
+  | .var x => rfl
+  | .app e₁ e₂ => simp only [free, vars, free_subset_vars, Finset.union_subset_union]
+  | .abs x e =>
+    simp only [free, vars]
+    exact Finset.Subset.trans
+      (Finset.sdiff_subset _ _)
+      (Finset.Subset.trans e.free_subset_vars (Finset.subset_union_left e.vars {x}))
+
 @[simp] theorem app_depth_left : e₁.depth < (app e₁ e₂).depth := by
   simp only [depth, lt_of_le_of_lt (le_max_left e₁.depth e₂.depth) (lt_one_add _)]
 
@@ -21,6 +31,12 @@ namespace Lambda
 @[simp] theorem is_affine_of_app :
     (app e₁ e₂).is_affine ↔ is_affine e₁ ∧ is_affine e₂ ∧ e₁.free ∩ e₂.free = ∅ := by
   simp only [is_affine, decide_eq_true_eq]
+
+@[simp] theorem vars_var : (var x).vars = {x} := by rfl
+
+@[simp] theorem abs_var : (abs x e).vars = e.vars ∪ {x} := by rfl
+
+@[simp] theorem app_var : (app e₁ e₂).vars = e₁.vars ∪ e₂.vars := by rfl
 
 /-- Variables that are not free in `e` have count of `0`. -/
 theorem count_not_mem_free {e : Lambda} {x : ℕ} (h : x ∉ e.free) : e.count x = 0 := by
