@@ -142,14 +142,10 @@ theorem substᵥ_count_β {e : Lambda} : (e.substᵥ x y).count_β = e.count_β 
     · simp only [if_pos hx, count_β, substᵥ, substᵥ_count_β (e := e₂)]
     · simp only [if_neg hx, count_β, substᵥ, substᵥ_count_β (e := e₂)]
   | .app (.abs x' e₁) e₂ =>
-    have : depth e₁ < depth (app (abs x' e₁) e₂) := by sorry
     by_cases hx : x = x'
     · simp_rw [count_β, substᵥ, if_pos hx, count_β, substᵥ_count_β (e := e₂)]
     · simp_rw [count_β, substᵥ, if_neg hx, count_β, substᵥ_count_β (e := e₁), substᵥ_count_β (e := e₂)]
   | .app (.app e₁ e₂) e₃ =>
-    have : depth e₁ < depth (app (app e₁ e₂) e₃) := by sorry
-    have : depth e₂ < depth (app (app e₁ e₂) e₃) := by sorry
-    have : depth e₃ < depth (app (app e₁ e₂) e₃) := by sorry
     simp_rw [count_β, substᵥ_count_β (e := e₁), substᵥ_count_β (e := e₂), substᵥ_count_β (e := e₃)]
 termination_by e.depth
 

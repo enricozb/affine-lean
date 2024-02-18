@@ -22,6 +22,37 @@ theorem free_subset_vars (e : Lambda) : e.free ⊆ e.vars := by
 
 @[simp] theorem abs_depth : e.depth < (abs x e).depth := by simp only [depth, lt_one_add]
 
+@[simp] theorem app_abs_depth : e₁.depth < (app (abs x' e₁) e₂).depth := by
+  simp only [depth]
+  calc
+  e₁.depth ≤ max e₁.depth e₂.depth := le_max_left _ _
+  _ ≤ max (1 + e₁.depth) e₂.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
+  _ < 1 + max (1 + e₁.depth) e₂.depth := lt_one_add _
+
+@[simp] theorem app_app_depth₁ : e₁.depth < (app (app e₁ e₂) e₃).depth := by
+  simp only [depth]
+  calc
+  e₁.depth ≤ max e₁.depth e₂.depth := le_max_left _ _
+  _ ≤ max (max e₁.depth e₂.depth) e₃.depth := le_max_left _ _
+  _ ≤ max (1 + max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
+  _ < 1 + max (1 + max e₁.depth e₂.depth) e₃.depth := lt_one_add _
+
+@[simp] theorem app_app_depth₂ : e₂.depth < (app (app e₁ e₂) e₃).depth := by
+  simp only [depth]
+  calc
+  e₂.depth ≤ max e₁.depth e₂.depth := le_max_right _ _
+  _ ≤ max (max e₁.depth e₂.depth) e₃.depth := le_max_left _ _
+  _ ≤ max (1 + max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
+  _ < 1 + max (1 + max e₁.depth e₂.depth) e₃.depth := lt_one_add _
+
+@[simp] theorem app_app_depth₃ : e₃.depth < (app (app e₁ e₂) e₃).depth := by
+  simp only [depth]
+  calc
+  e₃.depth ≤ max e₁.depth e₃.depth := le_max_right _ _
+  _ ≤ max (max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_max_left _ _
+  _ ≤ max (1 + max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
+  _ < 1 + max (1 + max e₁.depth e₂.depth) e₃.depth := lt_one_add _
+
 @[simp] theorem is_affine_of_var : (var x).is_affine := by
   simp only [is_affine]
 
