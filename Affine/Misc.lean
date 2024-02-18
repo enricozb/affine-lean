@@ -23,14 +23,25 @@ theorem add_add_neq_zero {a b c : ℕ} (h : a + b + c ≠ 0) : a ≠ 0 ∨ b ≠
 namespace Finset
 
 theorem union_distrib [DecidableEq α] (s₁ s₂ s₃ : Finset α) :
-    (s₁ ∪ s₂) ∪ s₃ = ((s₁ ∪ s₃) ∪ (s₂ ∪ s₃)) := by sorry
-
-theorem union_inter_empty [DecidableEq α] {s₁ s₂ s₃ : Finset α} (h : (s₁ ∪ s₂) ∩ s₃ = ∅) : s₁ ∩ s₃ = ∅ ∧ s₂ ∩ s₃ = ∅ := by
-  sorry
+    (s₁ ∪ s₂) ∪ s₃ = ((s₁ ∪ s₃) ∪ (s₂ ∪ s₃)) := by
+  ext x
+  simp only [mem_union]
+  rw [or_assoc (b := x ∈ s₃), or_comm (a := x ∈ s₂) (b := x ∈ s₃), ← or_assoc (a := x ∈ s₃),
+    or_self, or_comm (a := x ∈ s₃), or_assoc]
 
 theorem inter_eq_empty [DecidableEq α] {s₁ s₂ : Finset α} (h : (s₁ ∩ s₂) = ∅) :
     ¬(x ∈ s₁ ∧ x ∈ s₂) :=
   fun hmem => not_mem_empty _ (h ▸ mem_inter.mpr hmem)
+
+theorem union_inter_empty [DecidableEq α] {s₁ s₂ s₃ : Finset α} (h : (s₁ ∪ s₂) ∩ s₃ = ∅) :
+    s₁ ∩ s₃ = ∅ ∧ s₂ ∩ s₃ = ∅ := by
+  apply And.intro
+  · ext v; simp only [mem_inter, not_mem_empty, iff_false, not_and]; intro hv₁
+    have hv₁₂ : v ∈ s₁ ∪ s₂ := Finset.mem_of_subset (Finset.subset_union_left _ _) hv₁
+    exact fun hv₃ => Finset.not_mem_empty _ (h ▸ Finset.mem_inter.mpr ⟨hv₁₂, hv₃⟩)
+  · ext v; simp only [mem_inter, not_mem_empty, iff_false, not_and]; intro hv₂
+    have hv₁₂ : v ∈ s₁ ∪ s₂ := Finset.mem_of_subset (Finset.subset_union_right _ _) hv₂
+    exact fun hv₃ => Finset.not_mem_empty _ (h ▸ Finset.mem_inter.mpr ⟨hv₁₂, hv₃⟩)
 
 theorem sdiff_comm [DecidableEq α] {s u t : Finset α} : (s \ u) \ t = (s \ t) \ u := by
   ext v

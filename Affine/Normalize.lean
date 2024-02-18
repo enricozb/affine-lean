@@ -68,8 +68,9 @@ def small_step (e : Lambda) : Lambda :=
 
   | .app (.abs x e₁) e₂ =>
     simp only [is_affine_of_app, is_affine_of_abs] at h
-    have ⟨⟨he₁, _⟩, he₂, _⟩ := h
-    simp only [small_step, substₑ_is_affine he₁ he₂]
+    have ⟨⟨he₁, _⟩, he₂, hc⟩ := h
+    simp only [free] at hc
+    simp only [small_step, substₑ_is_affine hc he₁ he₂]
 
   | .app (.app e₁ e₂) e₃ =>
     simp only [is_affine_of_app, free] at h

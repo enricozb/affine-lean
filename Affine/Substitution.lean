@@ -242,12 +242,14 @@ theorem substₑ_free {e₁ e₂ : Lambda} : (substₑ e₁ x e₂).free ⊆ e�
           (fun ⟨hve₁, hvnx⟩ => Or.inl ⟨⟨hve₁, hv.2⟩, hvnx⟩)
           Or.inr
 
-theorem substₑ_is_affine {e₁ e₂ : Lambda} (h : e₁.free ∩ e₂.free = ∅) (he₁ : e₁.is_affine) (he₂ : e₂.is_affine) (x : ℕ) :
+theorem substₑ_is_affine {e₁ e₂ : Lambda}
+    (h : e₁.free \ {x} ∩ e₂.free = ∅) (he₁ : e₁.is_affine) (he₂ : e₂.is_affine) :
     (e₁.substₑ x e₂).is_affine := by
   match e₁ with
   | .var x' => simp only [is_affine, substₑ, apply_ite, he₂, ite_self]
   | .app a₁ a₂ =>
-    simp only [is_affine_of_app, free] at he₁ h
+    simp only [is_affine_of_app, free] at he₁
+    simp only [free, Finset.union_sdiff_distrib] at h
     have ⟨h₁, h₂⟩ := Finset.union_inter_empty h
     have ⟨ha₁, ha₂, hc⟩ := he₁
     simp only [is_affine_of_app, substₑ, substₑ_is_affine h₁ ha₁ he₂, substₑ_is_affine h₂ ha₂ he₂,
@@ -276,8 +278,8 @@ theorem substₑ_is_affine {e₁ e₂ : Lambda} (h : e₁.free ∩ e₂.free = �
       · simp only [if_pos hx', is_affine_of_abs]
         sorry
       · simp only [if_neg hx', is_affine_of_abs]
-        have hfree₁₂ : e₁.free ∩ e₂.free = ∅ := by sorry
-        have haffine : (e₁.substₑ x e₂).is_affine := substₑ_is_affine hfree₁₂ he₁.1 he₂ x
+        have hfree₁₂ : e₁.free \ {x} ∩ e₂.free = ∅ := by sorry
+        have haffine : (e₁.substₑ x e₂).is_affine := substₑ_is_affine hfree₁₂ he₁.1 he₂
         simp only [haffine, affine_count_le_one, true_and]
 
 theorem substₑ_count {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) :
