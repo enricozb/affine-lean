@@ -51,7 +51,21 @@ theorem substᵥ_count {e : Lambda} (hx : x ≠ z) (hy₁ : y ≠ z) (hy₂ : y 
     · rw [if_neg hx']
 
 theorem substᵥ_free_not_mem_free {e : Lambda} (hx : x ∉ e.free) :
-    (e.substᵥ x y).free = e.free := by sorry
+    (e.substᵥ x y).free = e.free := by
+  match e with
+  | .var x' =>
+    simp only [free, Finset.mem_singleton] at hx
+    simp only [substᵥ, if_neg hx]
+  | .abs x' e =>
+    simp only [free, Finset.mem_sdiff, not_and_or, not_not, Finset.mem_singleton] at hx
+    simp only [substᵥ, free, apply_ite]
+    refine' Or.elim hx (fun hxfree => _) (fun hx => _)
+    · rw [substᵥ_free_not_mem_free hxfree, ite_self]
+    · rw [if_pos hx]
+  | .app e₁ e₂ =>
+    simp only [free, Finset.not_mem_union] at hx
+    have ⟨hx₁, hx₂⟩ := hx
+    simp only [free, substᵥ_free_not_mem_free hx₁, substᵥ_free_not_mem_free hx₂]
 
 theorem substᵥ_free_mem_free {e : Lambda} (he : e.is_affine) (hx : x ∈ e.free) (hy : y ∉ e.vars) :
     (e.substᵥ x y).free = e.free \ {x} ∪ {y} := by
