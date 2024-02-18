@@ -30,8 +30,16 @@ In [`Normalize.lean`][3] we define `Affine.normalize`, which repeatedly applies
 β-reductions until none are left. This is done by first converting the `Affine` term
 to a `Lambda` term, since typing is easier there.
 
-Terminations is proven by counting the nubmer of β-reductions remaining, which always
-decreases after an application of `small_step`, unless there are none.
+~Terminations is proven by counting the nubmer of β-reductions remaining, which always
+decreases after an application of `small_step`, unless there are none.~
+
+Beta reductions aren't strictly decreasing under small steps. For example, the following
+small_step reduction of an affine term has one beta reduction before and after:
+```
+(\ x. x y) (\ z. z) -> (\ z. z) y
+```
+
+Need to find some metric that is strictly decreasing under `small_step`.
 
 In [`Normalize.lean`][3], we also have `Affine.normalize_is_normal`, which proves that,
 after normalizing, no β-reductions remain.
