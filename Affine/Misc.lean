@@ -22,6 +22,13 @@ theorem add_add_neq_zero {a b c : ℕ} (h : a + b + c ≠ 0) : a ≠ 0 ∨ b ≠
 
 namespace Finset
 
+theorem sdiff_singleton_inter_cancel [DecidableEq α] {s₁ s₂ : Finset α} (h : x ∉ s₂) :
+    s₁ \ {x} ∩ s₂ = s₁ ∩ s₂ := by
+  ext v
+  simp only [mem_inter, mem_sdiff, mem_singleton, and_congr_left_iff, and_iff_left_iff_imp]
+  intro hvs₂ _ hvx
+  exact h (hvx ▸ hvs₂)
+
 theorem union_distrib [DecidableEq α] (s₁ s₂ s₃ : Finset α) :
     (s₁ ∪ s₂) ∪ s₃ = ((s₁ ∪ s₃) ∪ (s₂ ∪ s₃)) := by
   ext x
