@@ -149,6 +149,22 @@ theorem substᵥ_count_β {e : Lambda} : (e.substᵥ x y).count_β = e.count_β 
     simp_rw [count_β, substᵥ_count_β (e := e₁), substᵥ_count_β (e := e₂), substᵥ_count_β (e := e₃)]
 termination_by e.depth
 
+theorem app_count_β_right_lt {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e₂.is_affine) :
+    e₁.count_β + e₂.count_β < 1 + (app e₁ e₂).count_β := by
+  match e₁
+
+theorem app_count_β_left_lt {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e₂.is_affine) :
+    (app e₁ e₂).count_β < 1 + e₁.count_β + e₂.count_β := by
+  match e₁ with
+  | .var x => simp only [count_β, add_zero, lt_one_add]
+  | .app a₁ a₂ =>
+    simp only [is_affine_of_app] at h₁
+    have ⟨ha₁, ha₂, _⟩ := h₁
+    rw [count_β]
+    apply add_lt_add_right
+    exact app_count_β_right_lt ha₁ ha₂
+  | .abs x e₁ => sorry
+
 theorem substₑ_count_β {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e₂.is_affine) :
     (e₁.substₑ x e₂).count_β < 1 + e₁.count_β + e₂.count_β := by
   match e₁ with
@@ -156,21 +172,16 @@ theorem substₑ_count_β {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e
     have h₁ : e₂.count_β < 1 + e₂.count_β := lt_one_add _
     have h₂ : 0 < 1 + e₂.count_β := by simp only [add_pos_iff, zero_lt_one, true_or]
     simp only [substₑ, count_β, add_zero, apply_ite, ite_lt h₁ h₂]
-
   | .abs x' e₁ =>
     simp only [is_affine, decide_eq_true_eq] at h₁
     simp only [substₑ, count_β, apply_ite count_β]
-
     wlog hx₁ : x ∈ e₁.free
     · simp only [if_pos (Or.inr hx₁), add_assoc, Nat.lt_one_add_iff.mpr, le_add_iff_nonneg_right,
         zero_le]
-
     wlog hxeq : x ≠ x'
     · simp only [if_pos (Or.inl (not_not.mp hxeq)), add_assoc, Nat.lt_one_add_iff.mpr,
         le_add_iff_nonneg_right, zero_le]
-
     rw [if_neg]
-
     by_cases hx' : x' ∈ e₂.free
     · rw [if_pos hx']
       let y := (e₁.vars ∪ e₂.free).fresh
@@ -180,10 +191,14 @@ theorem substₑ_count_β {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e
       simp only [substᵥ_count_β] at hinc
       exact hinc
     · simp only [if_neg hx', substₑ_count_β (e₁ := e₁) h₁.left h₂]
-
     simp only [not_or, not_not, hx₁, hxeq, not_false_eq_true, true_and]
 
-  | .app (.var _) e₂ => sorry
+  | .app (.var x') e₂ =>
+    simp only [is_affine_of_app, is_affine_of_var, true_and, free] at h₁
+    by_cases hx : x = x'
+    · simp only [substₑ, count_β, if_pos hx]
+      exact substₑ_count_β h₁.left h₂
+    simp only [substₑ]
   | .app (.abs _ e₁) e₂ => sorry
   | .app (.app e₁ e₂) e₃ => sorry
 termination_by e₁.depth

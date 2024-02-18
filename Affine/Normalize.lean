@@ -66,7 +66,7 @@ theorem small_step_count_β_lt {e : Lambda} (h₁ : e.count_β ≠ 0) (h₂ : e.
   | .app (.abs x e₁) e₂ =>
     simp only [count_β, is_affine, decide_eq_true_eq] at h₁ h₂
     have ⟨⟨he₁, _⟩, he₂, _⟩ := h₂
-    simp only [count_β, small_step, Lambda.substₑ_count_β he₁ he₂]
+    simp only [count_β, small_step]
   | .app (.app e₁ e₂) e₃ =>
     simp only [count_β, is_affine, decide_eq_true_eq] at h₁ h₂
     have ⟨⟨ha₁, ha₂, _⟩, ha₃, _⟩ := h₂
