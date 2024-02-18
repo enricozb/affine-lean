@@ -132,76 +132,56 @@ theorem substᵥ_is_affine {e : Lambda} (he : e.is_affine) (hy : y ∉ e.vars) :
           Finset.sdiff_inter_sdiff_cancel, Finset.inter_comm, hfree₁₂, Finset.empty_sdiff]
       · rw [substᵥ_free_not_mem_free hxa₂, hfree₁₂]
 
-theorem substᵥ_count_β {e : Lambda} : (e.substᵥ x y).count_β = e.count_β := by
-  match e with
-  | .var x' => simp only [count_β, substᵥ, apply_ite, ite_self]
-  | .abs x' e =>
-    simp only [count_β, substᵥ, apply_ite, ite_self, substᵥ_count_β (e := e)]
-  | .app (.var x') e₂ =>
-    by_cases hx : x = x'
-    · simp only [if_pos hx, count_β, substᵥ, substᵥ_count_β (e := e₂)]
-    · simp only [if_neg hx, count_β, substᵥ, substᵥ_count_β (e := e₂)]
-  | .app (.abs x' e₁) e₂ =>
-    by_cases hx : x = x'
-    · simp_rw [count_β, substᵥ, if_pos hx, count_β, substᵥ_count_β (e := e₂)]
-    · simp_rw [count_β, substᵥ, if_neg hx, count_β, substᵥ_count_β (e := e₁), substᵥ_count_β (e := e₂)]
-  | .app (.app e₁ e₂) e₃ =>
-    simp_rw [count_β, substᵥ_count_β (e := e₁), substᵥ_count_β (e := e₂), substᵥ_count_β (e := e₃)]
-termination_by e.depth
+theorem substᵥ_size {e : Lambda} : (e.substᵥ x y).size = e.size := by sorry
 
-theorem app_count_β_right_lt {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e₂.is_affine) :
-    e₁.count_β + e₂.count_β < 1 + (app e₁ e₂).count_β := by
-  match e₁
+theorem substₑ_size_not_mem_free {e₁ e₂ : Lambda} (h : x ∉ e₁.free) :
+    (substₑ e₁ x e₂).size = e₁.size := by sorry
 
-theorem app_count_β_left_lt {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e₂.is_affine) :
-    (app e₁ e₂).count_β < 1 + e₁.count_β + e₂.count_β := by
-  match e₁ with
-  | .var x => simp only [count_β, add_zero, lt_one_add]
-  | .app a₁ a₂ =>
-    simp only [is_affine_of_app] at h₁
-    have ⟨ha₁, ha₂, _⟩ := h₁
-    rw [count_β]
-    apply add_lt_add_right
-    exact app_count_β_right_lt ha₁ ha₂
-  | .abs x e₁ => sorry
-
-theorem substₑ_count_β {e₁ e₂ : Lambda} (h₁ : e₁.is_affine) (h₂ : e₂.is_affine) :
-    (e₁.substₑ x e₂).count_β < 1 + e₁.count_β + e₂.count_β := by
+theorem substₑ_size_lt {e₁ e₂ : Lambda} (h : e₁.is_affine) :
+    (substₑ e₁ x e₂).size < 1 + size e₁ + size e₂ := by
   match e₁ with
   | .var x' =>
-    have h₁ : e₂.count_β < 1 + e₂.count_β := lt_one_add _
-    have h₂ : 0 < 1 + e₂.count_β := by simp only [add_pos_iff, zero_lt_one, true_or]
-    simp only [substₑ, count_β, add_zero, apply_ite, ite_lt h₁ h₂]
-  | .abs x' e₁ =>
-    simp only [is_affine, decide_eq_true_eq] at h₁
-    simp only [substₑ, count_β, apply_ite count_β]
-    wlog hx₁ : x ∈ e₁.free
-    · simp only [if_pos (Or.inr hx₁), add_assoc, Nat.lt_one_add_iff.mpr, le_add_iff_nonneg_right,
-        zero_le]
-    wlog hxeq : x ≠ x'
-    · simp only [if_pos (Or.inl (not_not.mp hxeq)), add_assoc, Nat.lt_one_add_iff.mpr,
-        le_add_iff_nonneg_right, zero_le]
-    rw [if_neg]
-    by_cases hx' : x' ∈ e₂.free
-    · rw [if_pos hx']
-      let y := (e₁.vars ∪ e₂.free).fresh
-      have hy : y ∉ e₁.vars :=
-        (Finset.not_mem_union.mp (Finset.fresh_not_mem (e₁.vars ∪ e₂.free))).left
-      have hinc := substₑ_count_β (e₁ := e₁.substᵥ x' y) (e₂ := e₂) (x := x) (substᵥ_is_affine h₁.left hy) h₂
-      simp only [substᵥ_count_β] at hinc
-      exact hinc
-    · simp only [if_neg hx', substₑ_count_β (e₁ := e₁) h₁.left h₂]
-    simp only [not_or, not_not, hx₁, hxeq, not_false_eq_true, true_and]
-
-  | .app (.var x') e₂ =>
-    simp only [is_affine_of_app, is_affine_of_var, true_and, free] at h₁
+    simp only [substₑ, size, apply_ite, add_zero]
     by_cases hx : x = x'
-    · simp only [substₑ, count_β, if_pos hx]
-      exact substₑ_count_β h₁.left h₂
-    simp only [substₑ]
-  | .app (.abs _ e₁) e₂ => sorry
-  | .app (.app e₁ e₂) e₃ => sorry
+    · simp only [if_pos hx, lt_one_add]
+    · simp only [if_neg hx, add_pos_iff, zero_lt_one, true_or]
+  | .app a₁ a₂ =>
+    simp only [is_affine_of_app] at h
+    have ⟨ha₁, ha₂, hfree₁₂⟩ := h
+    simp only [substₑ, size]
+    by_cases hx₁ : x ∈ a₁.free
+    · have hx₂ : x ∉ a₂.free := fun hx₂ => Finset.inter_eq_empty hfree₁₂ ⟨hx₁, hx₂⟩
+      rw [substₑ_size_not_mem_free hx₂, add_assoc, add_comm _ e₂.size, ← add_assoc, ← add_assoc,
+        add_assoc _ _ a₁.size, add_comm e₂.size, ← add_assoc]
+      apply add_lt_add_right
+      exact substₑ_size_lt ha₁
+    · rw [substₑ_size_not_mem_free hx₁, ← add_assoc, add_comm 1, add_assoc, add_assoc]
+      apply add_lt_add_left
+      simp only [← add_assoc, substₑ_size_lt ha₂]
+  | .abs x' e₁ =>
+    simp only [is_affine_of_abs] at h
+    have ⟨he₁, _⟩ := h
+    simp only [size, substₑ]
+    by_cases hx : x = x' ∨ x ∉ e₁.free
+    · rw [if_pos hx, size]
+      calc
+      1 + e₁.size ≤ (1 + e₁.size) + e₂.size := by simp only [le_add_iff_nonneg_right, zero_le]
+      _ < 1 + ((1 + e₁.size) + e₂.size) := lt_one_add _
+      _ = 1 + (1 + e₁.size) + e₂.size := by simp only [add_assoc]
+    · simp_rw [if_neg hx, apply_ite size, size]
+      rw [not_or, not_not] at hx
+      by_cases hx' : x' ∈ e₂.free
+      · have : (e₁.substᵥ x' (e₁.vars ∪ e₂.free).fresh).is_affine := by
+          apply substᵥ_is_affine he₁
+          simp only [free_eq, Finset.fresh_union_left, not_false_eq_true]
+        rw [if_pos hx', add_assoc]
+        have hinc := substₑ_size_lt this (e₂ := e₂) (x := x)
+        rw [substᵥ_size] at hinc
+        exact add_lt_add_left hinc _
+      · rw [if_neg hx', add_assoc]
+        exact add_lt_add_left (substₑ_size_lt he₁) _
 termination_by e₁.depth
+
 
 theorem substₑ_is_affine {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) (he₂ : e₂.is_affine) (x : ℕ) :
     (e₁.substₑ x e₂).is_affine := by sorry

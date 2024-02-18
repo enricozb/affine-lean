@@ -14,6 +14,8 @@ theorem ite_lt {P : Prop} [Decidable P] {a b c : ℕ} (ha : a < c) (hb : b < c) 
   · simp_rw [if_pos h, ha]
   · simp_rw [if_neg h, hb]
 
+theorem add_add_neq_zero {a b c : ℕ} (h : a + b + c ≠ 0) : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0 := by sorry
+
 namespace Finset
 
 theorem inter_eq_empty [DecidableEq α] {s₁ s₂ : Finset α} (h : (s₁ ∩ s₂) = ∅) :

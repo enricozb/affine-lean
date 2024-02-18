@@ -13,12 +13,19 @@ inductive Lambda : Type
 
 namespace Lambda
 
-/-- The depth of a lambda, useful for `termination_by`. -/
+/-- The maximum depth of a lambda, useful for `termination_by`. -/
 def depth (e : Lambda) : ℕ :=
   match e with
   | .var _ => 0
   | .abs _ e => 1 + e.depth
   | .app e₁ e₂ => 1 + max e₁.depth e₂.depth
+
+/-- The number of abstractions, useful for `termination_by` for normalization. -/
+def size (e : Lambda) : ℕ :=
+  match e with
+  | .var _ => 0
+  | .abs _ e => 1 + e.size
+  | .app e₁ e₂ => e₁.size + e₂.size
 
 /-- The number of β-reductions. That is, `(λ x. e₁) e₂`. -/
 def count_β (e : Lambda) : ℕ :=

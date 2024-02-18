@@ -14,44 +14,20 @@ theorem free_subset_vars (e : Lambda) : e.free ⊆ e.vars := by
       (Finset.sdiff_subset _ _)
       (Finset.Subset.trans e.free_subset_vars (Finset.subset_union_left e.vars {x}))
 
+@[simp] theorem abs_depth : e.depth < (abs x e).depth := by simp only [depth, lt_one_add]
+
 @[simp] theorem app_depth_left : e₁.depth < (app e₁ e₂).depth := by
   simp only [depth, lt_of_le_of_lt (le_max_left e₁.depth e₂.depth) (lt_one_add _)]
 
 @[simp] theorem app_depth_right : e₂.depth < (app e₁ e₂).depth := by
   simp_rw [depth, lt_of_le_of_lt (le_max_right e₁.depth e₂.depth) (lt_one_add _)]
 
-@[simp] theorem abs_depth : e.depth < (abs x e).depth := by simp only [depth, lt_one_add]
-
 @[simp] theorem app_abs_depth : e₁.depth < (app (abs x' e₁) e₂).depth := by
   simp only [depth]
   calc
-  e₁.depth ≤ max e₁.depth e₂.depth := le_max_left _ _
-  _ ≤ max (1 + e₁.depth) e₂.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
+  e₁.depth < 1 + e₁.depth := lt_one_add _
+  _ ≤ max (1 + e₁.depth) e₂.depth := le_max_left _ _
   _ < 1 + max (1 + e₁.depth) e₂.depth := lt_one_add _
-
-@[simp] theorem app_app_depth₁ : e₁.depth < (app (app e₁ e₂) e₃).depth := by
-  simp only [depth]
-  calc
-  e₁.depth ≤ max e₁.depth e₂.depth := le_max_left _ _
-  _ ≤ max (max e₁.depth e₂.depth) e₃.depth := le_max_left _ _
-  _ ≤ max (1 + max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
-  _ < 1 + max (1 + max e₁.depth e₂.depth) e₃.depth := lt_one_add _
-
-@[simp] theorem app_app_depth₂ : e₂.depth < (app (app e₁ e₂) e₃).depth := by
-  simp only [depth]
-  calc
-  e₂.depth ≤ max e₁.depth e₂.depth := le_max_right _ _
-  _ ≤ max (max e₁.depth e₂.depth) e₃.depth := le_max_left _ _
-  _ ≤ max (1 + max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
-  _ < 1 + max (1 + max e₁.depth e₂.depth) e₃.depth := lt_one_add _
-
-@[simp] theorem app_app_depth₃ : e₃.depth < (app (app e₁ e₂) e₃).depth := by
-  simp only [depth]
-  calc
-  e₃.depth ≤ max e₁.depth e₃.depth := le_max_right _ _
-  _ ≤ max (max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_max_left _ _
-  _ ≤ max (1 + max e₁.depth e₂.depth) e₃.depth := max_le_max_right _ $ le_of_lt $ lt_one_add _
-  _ < 1 + max (1 + max e₁.depth e₂.depth) e₃.depth := lt_one_add _
 
 @[simp] theorem is_affine_of_var : (var x).is_affine := by
   simp only [is_affine]
@@ -118,6 +94,20 @@ theorem affine_count_le_one {e : Lambda} (he : e.is_affine) (x : ℕ) : e.count 
     · have hx₂ : x ∉ e₂.free := fun hx₂ => hn ⟨hx₁, hx₂⟩
       simp only [count, count_not_mem_free hx₂, add_zero, affine_count_le_one he₁]
     · simp only [count, count_not_mem_free hx₁, zero_add, affine_count_le_one he₂]
+
+@[simp] theorem free_eq (e : Affine vs) : vs = e.free := by rfl
+
+@[simp] theorem count_β_of_abs : (abs x e).count_β = e.count_β := by rfl
+
+@[simp] theorem count_β_of_app_var : (app (var x) e).count_β = e.count_β := by rfl
+
+@[simp] theorem count_β_of_app_abs :
+    (app (abs x e₁) e₂).count_β = 1 + e₁.count_β + e₂.count_β := by
+  rfl
+
+@[simp] theorem count_β_of_app_app :
+    (app (app e₁ e₂) e₃).count_β = e₁.count_β + e₂.count_β + e₃.count_β := by
+  rfl
 
 end Lambda
 

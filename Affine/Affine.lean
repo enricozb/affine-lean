@@ -16,6 +16,13 @@ inductive Affine : (vs : Finset ℕ) → Type
 
 namespace Affine
 
+/-- The number of abstractions, useful for `termination_by` for normalization. -/
+def size (e : Affine vs) : ℕ :=
+  match e with
+  | .var _ => 0
+  | .abs _ e => 1 + e.size
+  | .app e₁ e₂ _ => e₁.size + e₂.size
+
 /-- The number of β-reductions. That is, `(λ x. e₁) e₂`. -/
 def count_β (e : Affine vs) : ℕ :=
   match e with

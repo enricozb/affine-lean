@@ -50,6 +50,12 @@ theorem to_lambda_is_affine (e : Affine vs) : e.to_lambda.is_affine := by
       to_lambda_is_affine e₁, to_lambda_is_affine e₂, true_and, decide_eq_true_eq,
       ← to_lambda_free_eq e₁, ← to_lambda_free_eq e₂, h]
 
+theorem to_lambda_size_eq (e : Affine vs) : e.to_lambda.size = e.size := by
+  match e with
+  | .var _ => rfl
+  | .abs _ e => simp only [Lambda.size, size, e.to_lambda_size_eq]
+  | .app e₁ e₂ _ => simp only [Lambda.size, size, e₁.to_lambda_size_eq, e₂.to_lambda_size_eq]
+
 theorem to_lambda_count_β_eq (e : Affine vs) : e.to_lambda.count_β = e.count_β := by
   match e with
   | .var _ => rfl
