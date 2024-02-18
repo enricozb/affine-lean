@@ -132,10 +132,28 @@ theorem substᵥ_is_affine {e : Lambda} (he : e.is_affine) (hy : y ∉ e.vars) :
           Finset.sdiff_inter_sdiff_cancel, Finset.inter_comm, hfree₁₂, Finset.empty_sdiff]
       · rw [substᵥ_free_not_mem_free hxa₂, hfree₁₂]
 
-theorem substᵥ_size {e : Lambda} : (e.substᵥ x y).size = e.size := sorry
+theorem substᵥ_size {e : Lambda} : (e.substᵥ x y).size = e.size := by
+  match e with
+  | .var x => simp only [size, substᵥ, apply_ite, ite_self]
+  | .app e₁ e₂ => simp only [size, substᵥ, e₁.substᵥ_size, e₂.substᵥ_size]
+  | .abs x e => simp only [size, substᵥ, apply_ite, e.substᵥ_size, ite_self]
+
+theorem substₑ_not_mem_free {e₁ e₂ : Lambda} (h : x ∉ e₁.free) : substₑ e₁ x e₂ = e₁ := by
+  match e₁ with
+  | .var x' =>
+    simp only [free, Finset.mem_singleton] at h
+    simp only [substₑ, if_neg h]
+  | .app a₁ a₂ =>
+    simp only [free, Finset.not_mem_union] at h
+    simp only [size, substₑ, substₑ_not_mem_free h.1, substₑ_not_mem_free h.2]
+  | .abs x' e₁ =>
+    simp only [free, Finset.mem_sdiff, not_and_or, not_not, Finset.mem_singleton] at h
+    refine' Or.elim h (fun hve₁ => _) (fun hx' => _)
+    · simp only [size, substₑ, if_pos (Or.inr hve₁)]
+    · simp only [size, substₑ, if_pos (Or.inl hx')]
 
 theorem substₑ_size_not_mem_free {e₁ e₂ : Lambda} (h : x ∉ e₁.free) :
-    (substₑ e₁ x e₂).size = e₁.size := by sorry
+    (substₑ e₁ x e₂).size = e₁.size := by rw [substₑ_not_mem_free h]
 
 theorem substₑ_size_lt {e₁ e₂ : Lambda} (h : e₁.is_affine) :
     (substₑ e₁ x e₂).size < 1 + size e₁ + size e₂ := by
@@ -182,14 +200,95 @@ theorem substₑ_size_lt {e₁ e₂ : Lambda} (h : e₁.is_affine) :
         exact add_lt_add_left (substₑ_size_lt he₁) _
 termination_by e₁.depth
 
+theorem substₑ_free {e₁ e₂ : Lambda} : (substₑ e₁ x e₂).free ⊆ e₁.free \ {x} ∪ e₂.free := by
+  match e₁ with
+  | .var x' =>
+    simp only [free, substₑ, apply_ite]
+    by_cases hx' : x = x'
+    · simp only [if_pos hx', Finset.subset_union_right]
+    · simp only [if_neg hx', Finset.sdiff_singleton_eq_self (Finset.mem_singleton.not.mpr hx'),
+        Finset.subset_union_left]
+  | .app a₁ a₂ =>
+    simp only [free, substₑ, Finset.union_sdiff_distrib]
+    rw [Finset.union_distrib]
+    exact Finset.union_subset_union substₑ_free substₑ_free
+  | .abs x' e₁ =>
+    simp only [free, substₑ]
+    by_cases h : x = x' ∨ x ∉ e₁.free
+    · simp only [if_pos h, free]
+      refine' Or.elim h (fun hx' => _) (fun hxe₁ => _)
+      · rw [hx']
+        intro v hv
+        simp only [Finset.mem_sdiff, Finset.mem_singleton] at hv
+        simp only [sdiff_idem, Finset.mem_union, Finset.mem_sdiff, Finset.mem_singleton]
+        exact Or.inl hv
+      · intro v hv
+        simp only [Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_union] at *
+        exact Or.inl ⟨hv, (fun hvx => (hvx.symm ▸ hxe₁) hv.1)⟩
+    · simp only [if_neg h]
+      simp only [not_or, not_not] at h
+      by_cases hx' : x' ∈ e₂.free
+      · simp only [if_pos hx', free]
+        intro v hv
+        simp at *
+        sorry
+      · simp only [if_neg hx', free]
+        intro v hv
+        simp only [Finset.mem_sdiff, Finset.mem_singleton] at hv
+        have hinc := e₁.substₑ_free (e₂ := e₂) (x := x)
+        have hinc' := Finset.mem_of_subset substₑ_free hv.1
+        simp only [Finset.mem_union, Finset.mem_sdiff, Finset.mem_singleton] at *
+        refine' Or.elim hinc'
+          (fun ⟨hve₁, hvnx⟩ => Or.inl ⟨⟨hve₁, hv.2⟩, hvnx⟩)
+          Or.inr
 
 theorem substₑ_is_affine {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) (he₂ : e₂.is_affine) (x : ℕ) :
-    (e₁.substₑ x e₂).is_affine := by sorry
+    (e₁.substₑ x e₂).is_affine := by
+  match e₁ with
+  | .var x' => simp only [is_affine, substₑ, apply_ite, he₂, ite_self]
+  | .app a₁ a₂ =>
+    simp only [is_affine_of_app] at he₁
+    have ⟨ha₁, ha₂, hc⟩ := he₁
+    simp only [is_affine_of_app, substₑ, substₑ_is_affine ha₁ he₂, substₑ_is_affine ha₂ he₂,
+      true_and]
+    sorry
+  | .abs x e₁ => sorry
 
-theorem substₑ_free {e₁ e₂ : Lambda} : (substₑ e₁ x e₂).free ⊆ e₁.free \ {x} ∪ e₂.free := by sorry
-
-theorem substₑ_count {e₁ e₂ : Lambda} :
+theorem substₑ_count {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) :
     (e₁.substₑ x' e₂).count x ≤ (if x = x' then 0 else e₁.count x) + e₂.count x := by
-  sorry
+  match e₁ with
+  | .var y =>
+    simp only [count, substₑ, apply_ite (count · x)]
+    by_cases hx'y : x' = y
+    · simp only [if_pos hx'y, le_add_iff_nonneg_left, zero_le]
+    · simp only [if_neg hx'y]
+      by_cases hxy : x = y
+      · have hxx' : x ≠ x' := fun hxx' => hx'y (hxx' ▸ hxy)
+        simp only [if_pos hxy, if_neg hxx', le_add_iff_nonneg_right, zero_le]
+      · simp only [if_neg hxy, ite_self, zero_add, zero_le]
+  | .app a₁ a₂ =>
+    simp only [is_affine_of_app] at he₁
+    simp only [substₑ, count]
+    by_cases hxx' : x = x'
+    · rw [if_pos hxx', zero_add, hxx']
+      wlog hx' : x' ∈ a₁.free ∨ x' ∈ a₂.free
+      · rw [not_or] at hx'
+        have ⟨hx'₁, hx'₂⟩ := hx'
+        simp only [substₑ_not_mem_free hx'₁, substₑ_not_mem_free hx'₂, count_not_mem_free hx'₁,
+          count_not_mem_free hx'₂, zero_add, zero_le]
+
+      refine' Or.elim hx' (fun hx'₁ => _) (fun hx'₂ => _)
+      · have hx'₂ : x' ∉ a₂.free := fun hx'₂ => Finset.inter_eq_empty he₁.2.2 ⟨hx'₁, hx'₂⟩
+        simp only [substₑ_not_mem_free hx'₂, substₑ_not_mem_free hx'₂, count_not_mem_free hx'₂,
+          add_zero]
+        have hinc := substₑ_count he₁.1 (e₂ := e₂) (x := x') (x' := x')
+        rw [if_pos rfl, zero_add] at hinc
+        exact hinc
+      · have hx'₁ : x' ∉ a₁.free := fun hx'₁ => Finset.inter_eq_empty he₁.2.2 ⟨hx'₁, hx'₂⟩
+        sorry
+
+      sorry
+    sorry
+  | .abs x e₁ => sorry
 
 end Lambda

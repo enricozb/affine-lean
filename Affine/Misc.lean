@@ -22,6 +22,9 @@ theorem add_add_neq_zero {a b c : ℕ} (h : a + b + c ≠ 0) : a ≠ 0 ∨ b ≠
 
 namespace Finset
 
+theorem union_distrib [DecidableEq α] (s₁ s₂ s₃ : Finset α) :
+    (s₁ ∪ s₂) ∪ s₃ = ((s₁ ∪ s₃) ∪ (s₂ ∪ s₃)) := by sorry
+
 theorem inter_eq_empty [DecidableEq α] {s₁ s₂ : Finset α} (h : (s₁ ∩ s₂) = ∅) :
     ¬(x ∈ s₁ ∧ x ∈ s₂) :=
   fun hmem => not_mem_empty _ (h ▸ mem_inter.mpr hmem)

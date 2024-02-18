@@ -26,17 +26,24 @@ def small_step (e : Lambda) : Lambda :=
       (Finset.union_subset_union e₁.small_step_free e₂.small_step_free)
       e₃.small_step_free
 
-@[simp] theorem small_step_count (e : Lambda) (x : ℕ) : e.small_step.count x ≤ e.count x := by
+@[simp] theorem small_step_count {e : Lambda} (h : e.is_affine) (x : ℕ) : e.small_step.count x ≤ e.count x := by
   match e with
   | .var x' => simp only [count, le_refl]
-  | .abs x' e => simp only [count, small_step_count e x, ite_le_ite (le_refl 0)]
-  | .app (.var x') e₂ => simp only [count, small_step_count e₂ x, add_le_add_iff_left]
-  | .app (.abs x' e₁) e₂ => simp only [count, small_step, substₑ_count, le_refl]
+  | .abs x' e =>
+    simp only [is_affine_of_abs] at h
+    simp only [count, small_step_count h.1 x, ite_le_ite (le_refl 0)]
+  | .app (.var x') e₂ =>
+    simp only [is_affine_of_app, is_affine_of_var, true_and] at h
+    simp only [count, small_step_count h.1 x, add_le_add_iff_left]
+  | .app (.abs x' e₁) e₂ =>
+    simp only [is_affine_of_app, is_affine_of_abs] at h
+    simp only [count, small_step, substₑ_count h.1.1, le_refl]
   | .app (.app e₁ e₂) e₃ =>
+    simp only [is_affine_of_app] at h
     simp only [count, small_step, small_step_count]
     exact add_le_add
-      (add_le_add (e₁.small_step_count x) (e₂.small_step_count x))
-      (e₃.small_step_count x)
+      (add_le_add (e₁.small_step_count h.1.1 x) (e₂.small_step_count h.1.2.1 x))
+      (e₃.small_step_count h.2.1 x)
 
 @[simp] theorem small_step_is_affine {e : Lambda} (h : e.is_affine) : e.small_step.is_affine := by
   match e with
@@ -45,7 +52,7 @@ def small_step (e : Lambda) : Lambda :=
   | .abs x e =>
     have ⟨he, hc⟩ := is_affine_of_abs.mp h
     simp only [small_step, small_step_is_affine he, is_affine_of_abs, hc,
-      le_trans (small_step_count e x) hc, and_self]
+      le_trans (small_step_count he x) hc, and_self]
 
   | .app (.var x) e₂ =>
     simp only [is_affine_of_app, is_affine_of_var, free, true_and] at h
