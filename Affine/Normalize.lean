@@ -150,7 +150,15 @@ def small_step (e : Affine vs) : Affine e.small_step_free := e.small_step_impl.2
 
 theorem to_lambda_small_step {e : Affine vs} :
     e.to_lambda.small_step = e.small_step.to_lambda := by
-  sorry
+  match e with
+  | .var x => rfl
+  | .abs x e
+  | .app (.var x) e₂ h
+  | .app (.app e₁ e₂ h₁) e₃ h₂ =>
+    simp only [Lambda.small_step, e.to_lambda_small_step, to_lambda, Lambda.of_lambda_to_lambda]
+  | .app (.abs x e₁) e₂ h =>
+    simp only [to_lambda, Lambda.small_step, small_step, small_step_impl, Lambda.small_step,
+      Lambda.of_lambda_to_lambda]
 
 theorem small_step_size_lt {e : Affine vs} (hβ : e.count_β ≠ 0) :
     e.small_step.size < e.size := by

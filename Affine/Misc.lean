@@ -14,7 +14,11 @@ theorem ite_lt {P : Prop} [Decidable P] {a b c : ℕ} (ha : a < c) (hb : b < c) 
   · simp_rw [if_pos h, ha]
   · simp_rw [if_neg h, hb]
 
-theorem add_add_neq_zero {a b c : ℕ} (h : a + b + c ≠ 0) : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0 := by sorry
+theorem add_add_neq_zero {a b c : ℕ} (h : a + b + c ≠ 0) : a ≠ 0 ∨ b ≠ 0 ∨ c ≠ 0 := by
+  by_contra h'
+  simp only [ne_eq, not_or, not_not] at h'
+  simp only [h'.1, h'.2.1, h'.2.2] at h
+  contradiction
 
 namespace Finset
 

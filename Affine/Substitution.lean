@@ -132,7 +132,7 @@ theorem substᵥ_is_affine {e : Lambda} (he : e.is_affine) (hy : y ∉ e.vars) :
           Finset.sdiff_inter_sdiff_cancel, Finset.inter_comm, hfree₁₂, Finset.empty_sdiff]
       · rw [substᵥ_free_not_mem_free hxa₂, hfree₁₂]
 
-theorem substᵥ_size {e : Lambda} : (e.substᵥ x y).size = e.size := by sorry
+theorem substᵥ_size {e : Lambda} : (e.substᵥ x y).size = e.size := sorry
 
 theorem substₑ_size_not_mem_free {e₁ e₂ : Lambda} (h : x ∉ e₁.free) :
     (substₑ e₁ x e₂).size = e₁.size := by sorry
