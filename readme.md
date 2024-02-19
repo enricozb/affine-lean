@@ -1,5 +1,10 @@
 # Affine Lambda Calculus in Lean
 
+Proof that affine lambda terms always terminate when evaluated. This is done by
+1. Defining `Affine` lambda terms.
+2. Defining `Affine.is_normal`, which are terms that have no beta reductions remaining.
+3. Defining `Affine.normalization` which applies all beta reductions.
+
 ## Definitions
 - [`Affine`][1] are affine lambda terms:
 ```lean
