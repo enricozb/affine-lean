@@ -285,6 +285,7 @@ theorem substₑ_is_affine {e₁ e₂ : Lambda}
     refine' Or.elim hx (fun hx₁ => _) (fun hx₂ => _)
     · have hx₂ : x ∉ a₂.free := fun hx₂ => Finset.inter_eq_empty hc ⟨hx₁, hx₂⟩
       simp only [substₑ_not_mem_free hx₂]
+      -- (a₁.substₑ x e₂).free ⊆ a₁.free \ {x} ∪ e₂.free
       sorry
     · have hx₁ : x ∉ a₁.free := fun hx₁ => Finset.inter_eq_empty hc ⟨hx₁, hx₂⟩
       simp only [substₑ_not_mem_free hx₁]
@@ -298,13 +299,34 @@ theorem substₑ_is_affine {e₁ e₂ : Lambda}
     · simp only [if_neg hx]
       by_cases hx' : x' ∈ e₂.free
       · simp only [if_pos hx', is_affine_of_abs]
-        sorry
+        have haffine : is_affine (substₑ (substᵥ e₁ x' (Finset.fresh (vars e₁ ∪ free e₂))) x e₂) := by
+          apply substₑ_is_affine
+          · by_cases hx'e₁ : x' ∈ e₁.free
+            · rw [substᵥ_free_mem_free hx'e₁]
+              · simp only [Finset.union_sdiff_distrib, Finset.union_inter_distrib]
+                refine' Finset.union_eq_empty.mpr ⟨h, _⟩
+                · simp only [not_or, not_not] at hx
+                  by_cases hx : x = (e₁.vars ∪ e₂.free).fresh
+                  · rw [hx, Finset.sdiff_self, Finset.empty_inter]
+                  · have hx : x ∉ {(e₁.vars ∪ e₂.free).fresh} := Finset.mem_singleton.not.mpr hx
+                    rw [Finset.sdiff_singleton_eq_self hx]
+                    apply Finset.singleton_inter_of_not_mem
+                    simp only [Finset.fresh_union_right, not_false_eq_true]
+              simp only [Finset.fresh_union_left, not_false_eq_true]
+            · rw [substᵥ_free_not_mem_free hx'e₁]
+              simp only [Finset.sdiff_singleton_eq_self hx'e₁] at h
+              exact h
+          · apply substᵥ_is_affine he₁.1
+            · simp only [Finset.fresh_union_left, not_false_eq_true]
+          · exact he₂
+        exact ⟨haffine, affine_count_le_one haffine _⟩
       · simp only [if_neg hx', is_affine_of_abs]
         have hfree₁₂ : e₁.free \ {x} ∩ e₂.free = ∅ := by
           rw [Finset.sdiff_comm, Finset.sdiff_singleton_inter_cancel hx'] at h
           exact h
         have haffine : (e₁.substₑ x e₂).is_affine := substₑ_is_affine hfree₁₂ he₁.1 he₂
         simp only [haffine, affine_count_le_one, true_and]
+termination_by e₁.depth
 
 theorem substₑ_count {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) :
     (e₁.substₑ x' e₂).count x ≤ (if x = x' then 0 else e₁.count x) + e₂.count x := by
