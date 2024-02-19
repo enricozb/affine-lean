@@ -402,7 +402,6 @@ theorem substₑ_count {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) :
         rw [if_neg hxx'] at hinc
         rw [add_assoc]
         simp only [add_le_add_iff_left, hinc]
-
   | .abs y e₁ =>
     simp only [is_affine_of_abs] at he₁
     simp only [count, substₑ]
@@ -432,9 +431,25 @@ theorem substₑ_count {e₁ e₂ : Lambda} (he₁ : e₁.is_affine) :
               if x = y then 0 else count e₁ x := by
             by_cases hxy : x = y
             · simp_rw [if_pos hxy, hxy]
-              sorry
+              apply count_not_mem_free
+              by_cases hy : y ∈ e₁.free
+              · rw [substᵥ_free_mem_free hy]
+                simp only [Finset.mem_union, Finset.mem_sdiff, Finset.mem_singleton,
+                  not_true_eq_false, and_false, false_or]
+                have hy : y ∈ e₁.vars := Finset.mem_of_subset e₁.free_subset_vars hy
+                have hnmem := Finset.fresh_not_mem (e₁.vars ∪ e₂.free)
+                intro hy'
+                simp only [← hy', Finset.not_mem_union, hy, not_true] at hnmem
+                exact hnmem.left
+                simp only [Finset.fresh_union_left, not_false_eq_true]
+              · simp only [substᵥ_not_mem_free hy, hy, not_false_eq_true]
             · simp_rw [if_neg hxy]
-              sorry
+              by_cases hy : y ∈ e₁.free
+              · apply substᵥ_count
+                exact (fun hxy' => hxy hxy'.symm)
+                exact (fun hxy' => hx hxy'.symm)
+                simp only [Finset.fresh_union_left, not_false_eq_true]
+              · rw [substᵥ_not_mem_free hy]
 
           simp only [count, substᵥ, hc] at hinc
           exact hinc

@@ -2,7 +2,7 @@
 
 ## Definitions
 - [`Affine`][1] are affine lambda terms:
-```
+```lean
 /--
   Affine lambda terms, where bound variables can be used at most once.
 
@@ -18,7 +18,7 @@ inductive Affine : (vs : Finset ℕ) → Type
 This definition tracks the free variables and ensures affinity.
 
 - [`Lambda`][2] are general lambda terms, which don't track their free variables:
-```
+```lean
 inductive Lambda : Type
 | var (x : ℕ) : Lambda
 | abs (x : ℕ) (e : Lambda) : Lambda
@@ -30,23 +30,47 @@ In [`Normalize.lean`][3] we define `Affine.normalize`, which repeatedly applies
 β-reductions until none are left. This is done by first converting the `Affine` term
 to a `Lambda` term, since typing is easier there.
 
-~Terminations is proven by counting the nubmer of β-reductions remaining, which always
-decreases after an application of `small_step`, unless there are none.~
-
-Beta reductions aren't strictly decreasing under small steps. For example, the following
-small_step reduction of an affine term has one beta reduction before and after:
-```
-(\ x. x y) (\ z. z) -> (\ z. z) y
-```
-
-Need to find some metric that is strictly decreasing under `small_step`.
-
 In [`Normalize.lean`][3], we also have `Affine.normalize_is_normal`, which proves that,
 after normalizing, no β-reductions remain.
 
+## Termination
+Since lean only allows for functions that terminate, the fact that `Affine.normalize` type
+checks, proves that it terminates, by the definition of `size` below.
+
+Termination is proved by showing that the "size" of a lambda is strictly decreasing when
+applying a small step. That is,
+```lean
+/-- The number of abstractions, useful for `termination_by` for normalization. -/
+def size (e : Affine vs) : ℕ :=
+  match e with
+  | .var _ => 0
+  | .abs _ e => 1 + e.size
+  | .app e₁ e₂ _ => e₁.size + e₂.size
+
+/-- Small steps are stricftly decreasing for non-normal affine terms. -/
+theorem small_step_size_lt {e : Affine vs} (hβ : e.count_β ≠ 0) :
+    e.small_step.size < e.size := by
+  rw [← to_lambda_count_β_eq] at hβ
+  rw [← e.small_step.to_lambda_size_eq, ← e.to_lambda_size_eq, ← e.to_lambda_small_step]
+  exact Lambda.small_step_size_lt e.to_lambda_is_affine hβ
+
+/-- Applies beta reductions until none remain. -/
+def normalize (e : Affine vs) : (vs' : Finset ℕ) × (Affine vs') :=
+  if hβ : e.count_β = 0 then
+    ⟨vs, e⟩
+  else
+    have := small_step_size_lt hβ
+    normalize e.small_step
+termination_by e.size
+```
+
 ## TODO
-In retrospect I should have used [De Bruijn index][4] in order to side-step the complications
+1. In retrospect I should have used [De Bruijn index][4] in order to side-step the complications
 when renaming variables during substitutions.
+
+2. Instead of converting to a `Lambda`, perhaps keeping everything in `Affine vs` would be
+simpler. A lot of the substitution proofs are extremely convoluted. They are only complicated
+by the fact that we need to carry around affinity assumptions around for many of them.
 
 [1]: ./Affine/Affine.lean
 [2]: ./Affine/Lambda.lean

@@ -168,12 +168,14 @@ theorem to_lambda_small_step {e : Affine vs} :
     simp only [to_lambda, Lambda.small_step, small_step, small_step_impl, Lambda.small_step,
       Lambda.of_lambda_to_lambda]
 
+/-- Small steps are stricftly decreasing for non-normal affine terms. -/
 theorem small_step_size_lt {e : Affine vs} (hβ : e.count_β ≠ 0) :
     e.small_step.size < e.size := by
   rw [← to_lambda_count_β_eq] at hβ
   rw [← e.small_step.to_lambda_size_eq, ← e.to_lambda_size_eq, ← e.to_lambda_small_step]
   exact Lambda.small_step_size_lt e.to_lambda_is_affine hβ
 
+/-- Applies beta reductions until none remain. -/
 def normalize (e : Affine vs) : (vs' : Finset ℕ) × (Affine vs') :=
   if hβ : e.count_β = 0 then
     ⟨vs, e⟩
