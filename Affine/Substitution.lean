@@ -285,11 +285,28 @@ theorem substₑ_is_affine {e₁ e₂ : Lambda}
     refine' Or.elim hx (fun hx₁ => _) (fun hx₂ => _)
     · have hx₂ : x ∉ a₂.free := fun hx₂ => Finset.inter_eq_empty hc ⟨hx₁, hx₂⟩
       simp only [substₑ_not_mem_free hx₂]
-      -- (a₁.substₑ x e₂).free ⊆ a₁.free \ {x} ∪ e₂.free
-      sorry
+      apply Finset.subset_empty.mp
+      apply Finset.Subset.trans (Finset.inter_subset_inter substₑ_free Finset.Subset.rfl)
+      rw [Finset.union_inter_distrib]
+      apply Finset.union_subset
+      apply Finset.Subset.trans
+      apply Finset.inter_subset_inter (Finset.sdiff_subset _ _) Finset.Subset.rfl
+      exact Finset.subset_empty.mpr hc
+      rw [← Finset.sdiff_singleton_eq_self hx₂, Finset.inter_comm]
+      exact Finset.subset_empty.mpr h₂
+
     · have hx₁ : x ∉ a₁.free := fun hx₁ => Finset.inter_eq_empty hc ⟨hx₁, hx₂⟩
       simp only [substₑ_not_mem_free hx₁]
-      sorry
+      apply Finset.subset_empty.mp
+      apply Finset.Subset.trans
+      apply Finset.inter_subset_inter Finset.Subset.rfl substₑ_free
+      rw [Finset.inter_comm, Finset.union_inter_distrib]
+      apply Finset.union_subset
+      apply Finset.Subset.trans
+      apply Finset.inter_subset_inter (Finset.sdiff_subset _ _) Finset.Subset.rfl
+      rw [Finset.inter_comm, Finset.subset_empty, hc]
+      rw [← Finset.sdiff_singleton_eq_self hx₁, Finset.inter_comm]
+      exact Finset.subset_empty.mpr h₁
 
   | .abs x' e₁ =>
     simp only [free, is_affine_of_abs] at h he₁
