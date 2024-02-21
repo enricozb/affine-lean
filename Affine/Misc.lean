@@ -22,6 +22,18 @@ theorem add_add_neq_zero {a b c : ℕ} (h : a + b + c ≠ 0) : a ≠ 0 ∨ b ≠
 
 namespace Finset
 
+theorem sdiff_subset_sdiff' [DecidableEq α] {s₁ s₂ : Finset α} (s₃ : Finset α) (h : s₁ ⊆ s₂) :
+    s₁ \ s₃ ⊆ s₂ \ s₃ := by
+  intro v hv
+  simp only [mem_sdiff] at *
+  exact ⟨mem_of_subset h hv.1, hv.2⟩
+
+theorem sdiff_inter_comm [DecidableEq α] {s₁ s₂ s₃ : Finset α} :
+    s₁ \ s₂ ∩ s₃ = (s₁ ∩ s₃) \ s₂ := by
+  ext v
+  simp only [mem_inter, mem_sdiff]
+  simp_rw [and_comm (b := v ∉ s₂), and_assoc]
+
 theorem union_inter_distrib [DecidableEq α] {s₁ s₂ s₃ : Finset α} :
     (s₁ ∪ s₂) ∩ s₃ = (s₁ ∩ s₃) ∪ (s₂ ∩ s₃) := by
   ext x

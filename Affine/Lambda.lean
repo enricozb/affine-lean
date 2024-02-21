@@ -23,7 +23,7 @@ def depth (e : Lambda) : ℕ :=
 /-- The number of abstractions, useful for `termination_by` for normalization. -/
 def size (e : Lambda) : ℕ :=
   match e with
-  | .var _ => 0
+  | .var _ => 1
   | .abs _ e => 1 + e.size
   | .app e₁ e₂ => e₁.size + e₂.size
 

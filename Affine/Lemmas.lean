@@ -113,6 +113,19 @@ end Lambda
 
 namespace Affine
 
+theorem fresh_vars_not_mem_free (e₁ : Affine vs₁) (vs₂ : Finset ℕ) :
+    (e₁.vars ∪ vs₂).fresh ∉ e₁.free := by
+  sorry
+
+theorem free_subset_vars (e : Affine vs) : e.free ⊆ e.vars := by
+  match e with
+  | .var x => rfl
+  | .app e₁ e₂ _ => simp only [vars, free_subset_vars, Finset.union_subset_union]
+  | .abs x e =>
+    exact Finset.Subset.trans
+      (Finset.sdiff_subset _ _)
+      (Finset.Subset.trans e.free_subset_vars (Finset.subset_union_left e.vars {x}))
+
 @[simp] theorem free_eq (e : Affine vs) : vs = e.free := by rfl
 
 @[simp] theorem count_β_of_abs : (abs x e).count_β = e.count_β := by rfl
@@ -126,5 +139,30 @@ namespace Affine
 @[simp] theorem count_β_of_app_app :
     (app (app e₁ e₂ h₁) e₃ h₂).count_β = e₁.count_β + e₂.count_β + e₃.count_β := by
   rfl
+
+@[simp] theorem size_pos {e : Affine vs} : 0 < e.size := by
+  match e with
+  | .var _ => simp only [size, zero_lt_one]
+  | .abs _ _ => simp only [size, add_pos_iff, zero_lt_one, true_or]
+  | .app _ _ _ => simp only [size, add_pos size_pos size_pos]
+
+@[simp] theorem size_lt_size_abs : e.size < (abs x e).size := by
+  simp only [size, lt_add_iff_pos_left, zero_lt_one]
+
+@[simp] theorem size_lt_size_app_left : a₁.size < (app a₁ a₂ h).size := by
+  simp only [size, lt_add_iff_pos_right, size_pos]
+
+@[simp] theorem size_lt_size_app_right : a₂.size < (app a₁ a₂ h).size := by
+  simp only [size, lt_add_iff_pos_left, size_pos]
+
+@[simp] theorem size_lt_size_app_app₁ : e₁.size < (app (app e₁ e₂ h₁) e₃ h₂).size := by
+  simp_rw [size, add_assoc, lt_add_iff_pos_right, add_pos size_pos size_pos]
+
+@[simp] theorem size_lt_size_app_app₂ : e₂.size < (app (app e₁ e₂ h₁) e₃ h₂).size := by
+  simp_rw [size, add_comm e₁.size e₂.size, add_assoc, lt_add_iff_pos_right,
+    add_pos size_pos size_pos]
+
+@[simp] theorem size_lt_size_app_app₃ : e₃.size < (app (app e₁ e₂ h₁) e₃ h₂).size := by
+  simp_rw [size, add_comm, lt_add_iff_pos_right, add_pos size_pos size_pos]
 
 end Affine
